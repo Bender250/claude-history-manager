@@ -236,7 +236,7 @@ jobs:
             desc "Browser for your Claude Code session history"
             homepage "https://github.com/${REPO_NWO}"
 
-            depends_on macos: ">= :sequoia"
+            depends_on macos: :sequoia
 
             app "Chronicle.app"
             binary "#{appdir}/Chronicle.app/Contents/Helpers/chronicle"
