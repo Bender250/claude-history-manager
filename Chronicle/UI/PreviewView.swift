@@ -79,6 +79,10 @@ private struct PVHead: View {
                 .kerning(-0.65) // -0.025em at 26pt
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+                .padding(.bottom, 8)
+
+            sessionIDLine
                 .padding(.bottom, 14)
 
             StatGrid(session: session)
@@ -89,6 +93,21 @@ private struct PVHead: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Theme.Color.rule).frame(height: 1)
+        }
+    }
+
+    /// Full session UUID, always visible in the preview header — the sidebar
+    /// copy inside the transcript is too far in to be findable.
+    private var sessionIDLine: some View {
+        HStack(spacing: 8) {
+            Text(session.sessionID.description)
+                .font(Theme.Font.mono(size: 10.5, wght: 400))
+                .foregroundStyle(Theme.Color.textDim)
+                .textSelection(.enabled)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            CopyButton(value: session.sessionID.description)
+            Spacer(minLength: 0)
         }
     }
 
@@ -242,6 +261,7 @@ private struct StatGrid: View {
                 .foregroundStyle(Theme.Color.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+                .textSelection(.enabled)
             if !sub.isEmpty {
                 Text(sub)
                     .font(Theme.Font.pvStatSub)
@@ -332,6 +352,7 @@ private struct PVBody: View {
                         Text(pair.key)
                             .font(Theme.Font.mono)
                             .foregroundStyle(Theme.Color.text)
+                            .textSelection(.enabled)
                         Spacer()
                         Text("\(pair.value) call\(pair.value == 1 ? "" : "s")")
                             .font(Theme.Font.mono(size: 10.5, wght: 400))
@@ -385,6 +406,8 @@ private struct PVBody: View {
                             .foregroundStyle(Theme.Color.text)
                             .lineLimit(1)
                             .truncationMode(.middle)
+                            .textSelection(.enabled)
+                            .help(file.path)
                         Spacer()
                         Text("\(file.edits) edit\(file.edits == 1 ? "" : "s")")
                             .font(Theme.Font.mono(size: 10.5, wght: 400))

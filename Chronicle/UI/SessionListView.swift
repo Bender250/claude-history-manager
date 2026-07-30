@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SessionListView: View {
     @Environment(AppState.self) private var state
@@ -315,6 +316,15 @@ private struct SessionRow: View {
 
     @ViewBuilder
     private var rowContextMenu: some View {
+        // The row is a Button, so `.textSelection` on its label is swallowed by
+        // the tap gesture — these give keyboard-free access to the same text.
+        Button("Copy title") {
+            copyToPasteboard(customTitle ?? session.title)
+        }
+        Button("Copy session ID") {
+            copyToPasteboard(session.sessionID.description)
+        }
+        Divider()
         Button(isPinned ? "Unpin" : "Pin") {
             actions.togglePin(session)
         }
@@ -334,6 +344,11 @@ private struct SessionRow: View {
         Button("Move to Trash", role: .destructive) {
             actions.moveToTrash(session)
         }
+    }
+
+    private func copyToPasteboard(_ value: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(value, forType: .string)
     }
 
     private var rowBackground: SwiftUI.Color {

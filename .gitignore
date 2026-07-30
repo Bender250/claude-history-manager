@@ -5,6 +5,8 @@
 
 # Swift Package Manager
 .build/
+.build-cli/
+.build-gui/
 .swiftpm/
 Packages/
 *.xcodeproj/

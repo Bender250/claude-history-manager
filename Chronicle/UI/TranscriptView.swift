@@ -18,14 +18,18 @@ struct TranscriptView: View {
     @State private var expandedToolIDs: Set<String> = []
     // Quick Peek panel presentation flag (⌘Y / title-bar button).
     @State private var showQuickLook: Bool = false
+    // Render message bodies as raw markdown source instead of parsed output.
+    @State private var rawMarkdown: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
             TitleBar(
                 session: session,
+                rawMarkdown: rawMarkdown,
                 onBack: { state.closeTranscript() },
                 onExport: exportMarkdown,
-                onQuickLook: { showQuickLook = true }
+                onQuickLook: { showQuickLook = true },
+                onToggleRaw: { rawMarkdown.toggle() }
             )
             Rectangle().fill(Theme.Color.rule).frame(height: 1)
 
@@ -54,37 +58,68 @@ struct TranscriptView: View {
     @ViewBuilder
     private var body3Col: some View {
         if let transcript = state.loadedTranscript {
-            HStack(spacing: 0) {
-                TOCColumn(
-                    transcript: transcript,
-                    activeID: $activeMessageID
-                )
-                .frame(width: 220)
-                .background(Theme.Color.bg)
-                .overlay(alignment: .trailing) {
-                    Rectangle().fill(Theme.Color.rule).frame(width: 1)
+            if rawMarkdown {
+                // Raw mode is the whole document in ONE text view, so a drag
+                // can select across messages. The TOC is dropped here because
+                // its scroll targets are the composed message views.
+                HStack(spacing: 0) {
+                    RawDocumentColumn(markdown: rawDocument(transcript))
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.Color.bg)
+
+                    MetaSidebar(session: session, transcript: transcript)
+                        .frame(width: 280)
+                        .background(Theme.Color.bgElev)
+                        .overlay(alignment: .leading) {
+                            Rectangle().fill(Theme.Color.rule).frame(width: 1)
+                        }
                 }
-
-                CenterColumn(
-                    session: session,
-                    transcript: transcript,
-                    activeID: $activeMessageID,
-                    expandedToolIDs: $expandedToolIDs
-                )
-                .frame(maxWidth: .infinity)
-                .background(Theme.Color.bg)
-
-                MetaSidebar(session: session, transcript: transcript)
-                    .frame(width: 280)
-                    .background(Theme.Color.bgElev)
-                    .overlay(alignment: .leading) {
-                        Rectangle().fill(Theme.Color.rule).frame(width: 1)
-                    }
+            } else {
+                composedBody(transcript)
             }
         } else if let err = state.transcriptLoadError {
             errorState(err)
         } else {
             loadingState
+        }
+    }
+
+    private func rawDocument(_ transcript: Transcript) -> String {
+        TranscriptMarkdownExporter.export(
+            session: session,
+            transcript: transcript,
+            workspaceDisplayName: workspaceDisplayName
+        )
+    }
+
+    @ViewBuilder
+    private func composedBody(_ transcript: Transcript) -> some View {
+        HStack(spacing: 0) {
+            TOCColumn(
+                transcript: transcript,
+                activeID: $activeMessageID
+            )
+            .frame(width: 220)
+            .background(Theme.Color.bg)
+            .overlay(alignment: .trailing) {
+                Rectangle().fill(Theme.Color.rule).frame(width: 1)
+            }
+
+            CenterColumn(
+                session: session,
+                transcript: transcript,
+                activeID: $activeMessageID,
+                expandedToolIDs: $expandedToolIDs
+            )
+            .frame(maxWidth: .infinity)
+            .background(Theme.Color.bg)
+
+            MetaSidebar(session: session, transcript: transcript)
+                .frame(width: 280)
+                .background(Theme.Color.bgElev)
+                .overlay(alignment: .leading) {
+                    Rectangle().fill(Theme.Color.rule).frame(width: 1)
+                }
         }
     }
 
@@ -171,9 +206,11 @@ struct TranscriptView: View {
 
 private struct TitleBar: View {
     let session: SessionMetadata
+    let rawMarkdown: Bool
     let onBack: () -> Void
     let onExport: () -> Void
     let onQuickLook: () -> Void
+    let onToggleRaw: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
@@ -197,10 +234,16 @@ private struct TitleBar: View {
                 .foregroundStyle(Theme.Color.textMuted)
                 .lineLimit(1)
                 .truncationMode(.middle)
+                .textSelection(.enabled)
 
             Spacer()
 
             HStack(spacing: 12) {
+                actionButton(
+                    rawMarkdown ? "◉ Raw markdown" : "○ Raw markdown",
+                    tint: rawMarkdown ? Theme.Color.accent : Theme.Color.textFaint,
+                    action: onToggleRaw
+                )
                 actionButton("↗ Export .md", action: onExport)
                 actionButton("★ Pin", action: {})
                 actionButton("⤤ Quick Look", action: onQuickLook)
@@ -218,11 +261,15 @@ private struct TitleBar: View {
     }
 
     @ViewBuilder
-    private func actionButton(_ label: String, action: @escaping () -> Void) -> some View {
+    private func actionButton(
+        _ label: String,
+        tint: SwiftUI.Color = Theme.Color.textFaint,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Text(label)
                 .font(Theme.Font.mono(size: 11, wght: 400))
-                .foregroundStyle(Theme.Color.textFaint)
+                .foregroundStyle(tint)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -608,6 +655,43 @@ private struct CenterColumn: View {
     }
 }
 
+// MARK: - Raw markdown column
+
+/// Whole transcript as one selectable monospace document. Because it's a single
+/// NSTextView, a drag selects across message boundaries and ⌘A / ⌘C take the
+/// entire transcript — neither of which is possible in the composed view, where
+/// every block is a separate SwiftUI `Text`.
+private struct RawDocumentColumn: View {
+    let markdown: String
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Text("raw markdown · \(markdown.count) chars")
+                    .font(Theme.Font.mono(size: 10.5, wght: 400))
+                    .foregroundStyle(Theme.Color.textFaint)
+                Spacer()
+                Text("⌘A then ⌘C to take all of it")
+                    .font(Theme.Font.mono(size: 10, wght: 400))
+                    .foregroundStyle(Theme.Color.textFaint)
+                CopyButton(value: markdown, label: "copy all")
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Theme.Color.rule).frame(height: 1)
+            }
+
+            SelectableTextView(
+                text: markdown,
+                font: .monospacedSystemFont(ofSize: 11.5, weight: .regular),
+                textColor: NSColor(Theme.Color.textMuted),
+                insets: NSSize(width: 20, height: 18)
+            )
+        }
+    }
+}
+
 // MARK: - Header block
 
 private struct HeaderBlock: View {
@@ -627,6 +711,7 @@ private struct HeaderBlock: View {
                 .kerning(-0.96)
                 .lineLimit(4)
                 .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
 
             bylineRow
                 .padding(.top, 6)
@@ -943,7 +1028,30 @@ private struct MetaSidebar: View {
                 stat("Model", model, mono: true)
             }
             stat("Tokens", numberFmt(transcript.stats.totalTokens), mono: true)
-            stat("Session ID", String(session.sessionID.description.prefix(8)), mono: true)
+            sessionIDRow
+        }
+    }
+
+    /// The full session UUID needs its own two-line row — 36 mono characters
+    /// don't fit beside the label in a 280pt sidebar.
+    private var sessionIDRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Session ID")
+                    .font(Theme.Font.txMetaKey)
+                    .foregroundStyle(Theme.Color.textDim)
+                Spacer()
+                CopyButton(value: session.sessionID.description)
+            }
+            Text(session.sessionID.description)
+                .font(Theme.Font.mono(size: 10.5, wght: 400))
+                .foregroundStyle(Theme.Color.text)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, 5)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.Color.rule).frame(height: 1)
         }
     }
 
@@ -971,6 +1079,8 @@ private struct MetaSidebar: View {
                                 .foregroundStyle(Theme.Color.textMuted)
                                 .lineLimit(1)
                                 .truncationMode(.head)
+                                .textSelection(.enabled)
+                                .help(touch.path)
                             Spacer()
                             Text("\(touch.edits) edit\(touch.edits == 1 ? "" : "s")")
                                 .font(Theme.Font.txMetaFileCount)
@@ -1053,6 +1163,7 @@ private struct MetaSidebar: View {
                 .foregroundStyle(Theme.Color.text)
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .textSelection(.enabled)
         }
         .padding(.vertical, 5)
         .overlay(alignment: .bottom) {
