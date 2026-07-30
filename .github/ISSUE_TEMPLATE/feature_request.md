@@ -18,6 +18,6 @@ Other ways you could solve the same problem (including doing nothing).
 
 ## Scope check
 
-- [ ] Fits within Chronicle's "local-only, transcripts stay on this Mac" privacy model
+- [ ] Fits within History Claude's "local-only, transcripts stay on this Mac" privacy model
 - [ ] Works on macOS 15+ (no older fallback needed)
 - [ ] Doesn't require a paid backend service

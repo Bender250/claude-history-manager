@@ -22,13 +22,13 @@ Be decent to people. Don't harass, don't dismiss, don't punch down. Disagreement
 
 ## Reporting
 
-If you see or experience any of the above, email josefyaduvanshi@gmail.com with `[chronicle-conduct]` in the subject. I'll respond within 7 days. Reports stay confidential. I'll act in proportion to the issue: a private nudge for a single rough comment, removal from the repo for a pattern.
+If you see or experience any of the above, email josefyaduvanshi@gmail.com with `[history-claude-conduct]` in the subject. I'll respond within 7 days. Reports stay confidential. I'll act in proportion to the issue: a private nudge for a single rough comment, removal from the repo for a pattern.
 
 If the issue involves me directly, that's still the right address. Be specific about what happened so I can take it seriously.
 
 ## Scope
 
-This applies to GitHub issues, PRs, discussions, and any spaces where people are talking about Chronicle as a project (including in-person events someone shows up to representing the project). It doesn't reach into people's private lives or unrelated communities.
+This applies to GitHub issues, PRs, discussions, and any spaces where people are talking about History Claude as a project (including in-person events someone shows up to representing the project). It doesn't reach into people's private lives or unrelated communities.
 
 ## Acknowledgment
 

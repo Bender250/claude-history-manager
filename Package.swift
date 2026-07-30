@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "Chronicle",
+    name: "HistoryClaude",
     platforms: [.macOS(.v15)],
     products: [
-        .executable(name: "Chronicle", targets: ["Chronicle"]),
-        .executable(name: "chronicle", targets: ["ChronicleCLI"]),
+        .executable(name: "HistoryClaude", targets: ["HistoryClaude"]),
+        .executable(name: "history-claude", targets: ["HistoryClaudeCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.27.0"),
@@ -16,14 +16,14 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "Chronicle",
+            name: "HistoryClaude",
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "MarkdownUI", package: "swift-markdown-ui"),
                 .product(name: "Splash", package: "Splash"),
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
-            path: "Chronicle",
+            path: "HistoryClaude",
             resources: [
                 .process("Resources"),
             ],
@@ -36,7 +36,7 @@ let package = Package(
             // SwiftPM's `linkerSettings.unsafeFlags` was the obvious
             // place to add it, but SwiftPM strips unsafe flags in
             // release-mode CI builds even when they're inside
-            // `swift build --product Chronicle -c release`, which
+            // `swift build --product HistoryClaude -c release`, which
             // produced a binary that crashed on first launch with
             // "Library not loaded: @rpath/Sparkle.framework/...".
         ),
@@ -45,16 +45,16 @@ let package = Package(
         // so it is portable and trivially packageable as a single
         // static binary on Linux.
         .executableTarget(
-            name: "ChronicleCLI",
-            path: "ChronicleCLI",
+            name: "HistoryClaudeCLI",
+            path: "HistoryClaudeCLI",
             swiftSettings: [
                 .swiftLanguageMode(.v5),
             ]
         ),
         .testTarget(
-            name: "ChronicleTests",
-            dependencies: ["Chronicle"],
-            path: "ChronicleTests",
+            name: "HistoryClaudeTests",
+            dependencies: ["HistoryClaude"],
+            path: "HistoryClaudeTests",
             resources: [.copy("Fixtures")],
             swiftSettings: [
                 .swiftLanguageMode(.v5),

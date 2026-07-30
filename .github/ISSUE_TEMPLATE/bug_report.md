@@ -20,7 +20,7 @@ What you thought would happen instead.
 
 ## Environment
 
-- Chronicle version: (e.g. `0.1.0`, see `Chronicle → About`)
+- History Claude version: (e.g. `0.1.0`, see `History Claude → About`)
 - macOS version: (e.g. `15.2`, see `About This Mac`)
 - Hardware: (Apple Silicon / Intel)
 - Install method: `.pkg` / `.dmg` / `.zip` / built from source
@@ -30,10 +30,10 @@ What you thought would happen instead.
 If the app didn't crash but is misbehaving, run this in Terminal and paste the last 20 lines:
 
 ```bash
-log show --predicate 'subsystem == "app.chronicle.Chronicle"' --info --last 5m
+log show --predicate 'subsystem == "app.historyclaude.HistoryClaude"' --info --last 5m
 ```
 
-If the app crashed, attach the crash report from `~/Library/Logs/DiagnosticReports/Chronicle-*.ips`.
+If the app crashed, attach the crash report from `~/Library/Logs/DiagnosticReports/HistoryClaude-*.ips`.
 
 ## Anything else
 

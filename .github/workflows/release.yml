@@ -32,7 +32,7 @@ jobs:
 
       - name: Universal binary build (arm64 + x86_64)
         # macos runners use APFS in case-INSENSITIVE mode by default. The
-        # two products in this package — `Chronicle` (GUI) and `chronicle`
+        # two products in this package — `HistoryClaude` (GUI) and `history-claude`
         # (CLI) — would produce build artifacts at the same case-folded
         # path inside one `.build` tree, and SwiftPM's own build manifest
         # collides on the second target lookup. Giving each product its
@@ -42,11 +42,11 @@ jobs:
         run: |
           set -euxo pipefail
 
-          swift build -c release --arch arm64 --product Chronicle --build-path .build-gui
-          swift build -c release --arch x86_64 --product Chronicle --build-path .build-gui
+          swift build -c release --arch arm64 --product HistoryClaude --build-path .build-gui
+          swift build -c release --arch x86_64 --product HistoryClaude --build-path .build-gui
           lipo -create -output .build-gui/gui-universal \
-            .build-gui/arm64-apple-macosx/release/Chronicle \
-            .build-gui/x86_64-apple-macosx/release/Chronicle
+            .build-gui/arm64-apple-macosx/release/HistoryClaude \
+            .build-gui/x86_64-apple-macosx/release/HistoryClaude
           file .build-gui/gui-universal
 
           # Add the @executable_path/../Frameworks rpath that dyld
@@ -80,11 +80,11 @@ jobs:
             exit 1
           fi
 
-          swift build -c release --arch arm64 --product chronicle --build-path .build-cli
-          swift build -c release --arch x86_64 --product chronicle --build-path .build-cli
+          swift build -c release --arch arm64 --product history-claude --build-path .build-cli
+          swift build -c release --arch x86_64 --product history-claude --build-path .build-cli
           lipo -create -output .build-cli/cli-universal \
-            .build-cli/arm64-apple-macosx/release/chronicle \
-            .build-cli/x86_64-apple-macosx/release/chronicle
+            .build-cli/arm64-apple-macosx/release/history-claude \
+            .build-cli/x86_64-apple-macosx/release/history-claude
           file .build-cli/cli-universal
           .build-cli/cli-universal --version
 
@@ -112,41 +112,41 @@ jobs:
         run: |
           set -euxo pipefail
           VERSION="${REF_NAME#v}"
-          APP="Chronicle.app"
+          APP="HistoryClaude.app"
           rm -rf "$APP"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Helpers" "$APP/Contents/Frameworks"
 
-          cp .build-gui/gui-universal "$APP/Contents/MacOS/Chronicle"
-          chmod +x "$APP/Contents/MacOS/Chronicle"
+          cp .build-gui/gui-universal "$APP/Contents/MacOS/HistoryClaude"
+          chmod +x "$APP/Contents/MacOS/HistoryClaude"
           cp docs/branding/icon.icns "$APP/Contents/Resources/AppIcon.icns"
 
           # Embed CLI helper. The cask uses `binary
-          # "#{appdir}/Chronicle.app/Contents/Helpers/chronicle"` to expose
+          # "#{appdir}/HistoryClaude.app/Contents/Helpers/history-claude"` to expose
           # this on PATH for users who install via `brew install --cask
-          # chronicle`. Linux users get the same binary via Linuxbrew or the
+          # history-claude`. Linux users get the same binary via Linuxbrew or the
           # tarball from the GH release.
-          cp .build-cli/cli-universal "$APP/Contents/Helpers/chronicle"
-          chmod +x "$APP/Contents/Helpers/chronicle"
+          cp .build-cli/cli-universal "$APP/Contents/Helpers/history-claude"
+          chmod +x "$APP/Contents/Helpers/history-claude"
 
-          # Sanity: the GUI binary at MacOS/Chronicle MUST be the GUI, not
+          # Sanity: the GUI binary at MacOS/HistoryClaude MUST be the GUI, not
           # the CLI. Bytewise compare; bail if the two are identical (would
           # mean the product mix-up regressed).
-          if cmp -s "$APP/Contents/MacOS/Chronicle" "$APP/Contents/Helpers/chronicle"; then
-            echo "::error::MacOS/Chronicle and Helpers/chronicle are byte-identical — product mix-up regressed"
+          if cmp -s "$APP/Contents/MacOS/HistoryClaude" "$APP/Contents/Helpers/history-claude"; then
+            echo "::error::MacOS/HistoryClaude and Helpers/history-claude are byte-identical — product mix-up regressed"
             exit 1
           fi
-          GUI_BYTES=$(stat -f %z "$APP/Contents/MacOS/Chronicle")
+          GUI_BYTES=$(stat -f %z "$APP/Contents/MacOS/HistoryClaude")
           if [ "$GUI_BYTES" -lt 5000000 ]; then
-            echo "::error::MacOS/Chronicle is only $GUI_BYTES bytes — wrong binary embedded"
+            echo "::error::MacOS/HistoryClaude is only $GUI_BYTES bytes — wrong binary embedded"
             exit 1
           fi
 
           # SwiftPM-bundled fonts
-          if [ -d .build-gui/arm64-apple-macosx/release/Chronicle_Chronicle.bundle ]; then
-            cp -R .build-gui/arm64-apple-macosx/release/Chronicle_Chronicle.bundle "$APP/Contents/Resources/"
+          if [ -d .build-gui/arm64-apple-macosx/release/HistoryClaude_HistoryClaude.bundle ]; then
+            cp -R .build-gui/arm64-apple-macosx/release/HistoryClaude_HistoryClaude.bundle "$APP/Contents/Resources/"
           fi
 
-          # Sparkle.framework — Chronicle's Info.plist references
+          # Sparkle.framework — HistoryClaude's Info.plist references
           # @rpath/Sparkle.framework, and the binary's LC_RPATH list
           # (set in Package.swift's linkerSettings) includes
           # @executable_path/../Frameworks. Copy the framework into
@@ -187,11 +187,11 @@ jobs:
           # cheaper than discovering the regression on a user's Mac.
           # Capture into a var first to avoid `grep -q` SIGPIPEing
           # awk under set -o pipefail.
-          BUNDLE_RPATHS=$(otool -l "$APP/Contents/MacOS/Chronicle" \
+          BUNDLE_RPATHS=$(otool -l "$APP/Contents/MacOS/HistoryClaude" \
             | awk '/cmd LC_RPATH/{getline; getline; print}')
           if ! printf '%s\n' "$BUNDLE_RPATHS" \
                | grep -qx '         path @executable_path/../Frameworks (offset 12)'; then
-            echo "::error::Chronicle binary is missing the @executable_path/../Frameworks rpath; SwiftPM may have stripped linkerSettings.unsafeFlags"
+            echo "::error::HistoryClaude binary is missing the @executable_path/../Frameworks rpath; SwiftPM may have stripped linkerSettings.unsafeFlags"
             printf '%s\n' "$BUNDLE_RPATHS"
             exit 1
           fi
@@ -217,7 +217,7 @@ jobs:
           fi
           BUILD_NUMBER=$((MAJOR * 10000 + MINOR * 100 + PATCH))
           sed -e "s/__VERSION__/${VERSION}/g" \
-              Chronicle/Resources/Info.plist.in \
+              HistoryClaude/Resources/Info.plist.in \
             > "$APP/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER}" \
             "$APP/Contents/Info.plist"
@@ -228,63 +228,63 @@ jobs:
 
       - name: Ad-hoc sign + strip quarantine
         run: |
-          codesign --force --deep --sign - Chronicle.app
-          codesign --verify --deep --strict Chronicle.app
-          xattr -cr Chronicle.app
+          codesign --force --deep --sign - HistoryClaude.app
+          codesign --verify --deep --strict HistoryClaude.app
+          xattr -cr HistoryClaude.app
 
       - name: Build .zip artifact
         run: |
           set -euxo pipefail
-          ditto -c -k --keepParent Chronicle.app "Chronicle-${REF_NAME#v}.zip"
-          shasum -a 256 "Chronicle-${REF_NAME#v}.zip" \
-            > "Chronicle-${REF_NAME#v}.zip.sha256"
+          ditto -c -k --keepParent HistoryClaude.app "HistoryClaude-${REF_NAME#v}.zip"
+          shasum -a 256 "HistoryClaude-${REF_NAME#v}.zip" \
+            > "HistoryClaude-${REF_NAME#v}.zip.sha256"
 
       - name: Build .dmg artifact
         run: |
           set -euxo pipefail
           mkdir -p dmg-staging
-          cp -R Chronicle.app dmg-staging/Chronicle.app
+          cp -R HistoryClaude.app dmg-staging/HistoryClaude.app
           ln -sfn /Applications dmg-staging/Applications
-          hdiutil create -volname "Chronicle" \
+          hdiutil create -volname "HistoryClaude" \
             -srcfolder dmg-staging -ov -format UDZO \
-            "Chronicle-${REF_NAME#v}.dmg"
-          shasum -a 256 "Chronicle-${REF_NAME#v}.dmg" \
-            > "Chronicle-${REF_NAME#v}.dmg.sha256"
+            "HistoryClaude-${REF_NAME#v}.dmg"
+          shasum -a 256 "HistoryClaude-${REF_NAME#v}.dmg" \
+            > "HistoryClaude-${REF_NAME#v}.dmg.sha256"
           rm -rf dmg-staging
 
       - name: Build .pkg installer with quarantine-strip postinstall
         run: |
           set -euxo pipefail
           mkdir -p pkg-payload/Applications pkg-scripts
-          cp -R Chronicle.app pkg-payload/Applications/Chronicle.app
+          cp -R HistoryClaude.app pkg-payload/Applications/HistoryClaude.app
 
           cat > pkg-scripts/postinstall <<'BASH'
           #!/bin/bash
-          # Strip quarantine so Chronicle launches without the right-click
+          # Strip quarantine so HistoryClaude launches without the right-click
           # dance. The .app ships ad-hoc signed (no Apple Developer ID).
-          /usr/bin/xattr -cr "/Applications/Chronicle.app" || true
+          /usr/bin/xattr -cr "/Applications/HistoryClaude.app" || true
           exit 0
           BASH
           chmod +x pkg-scripts/postinstall
 
           pkgbuild \
             --root pkg-payload \
-            --identifier app.chronicle.Chronicle \
+            --identifier app.historyclaude.HistoryClaude \
             --version "${REF_NAME#v}" \
             --install-location / \
             --scripts pkg-scripts \
-            "Chronicle-${REF_NAME#v}.pkg"
-          shasum -a 256 "Chronicle-${REF_NAME#v}.pkg" \
-            > "Chronicle-${REF_NAME#v}.pkg.sha256"
+            "HistoryClaude-${REF_NAME#v}.pkg"
+          shasum -a 256 "HistoryClaude-${REF_NAME#v}.pkg" \
+            > "HistoryClaude-${REF_NAME#v}.pkg.sha256"
           rm -rf pkg-payload pkg-scripts
 
       - name: Combined checksums
         run: |
           shasum -a 256 \
-            "Chronicle-${REF_NAME#v}.zip" \
-            "Chronicle-${REF_NAME#v}.dmg" \
-            "Chronicle-${REF_NAME#v}.pkg" \
-            > "Chronicle-${REF_NAME#v}.shasums"
+            "HistoryClaude-${REF_NAME#v}.zip" \
+            "HistoryClaude-${REF_NAME#v}.dmg" \
+            "HistoryClaude-${REF_NAME#v}.pkg" \
+            > "HistoryClaude-${REF_NAME#v}.shasums"
 
       - name: Install Sparkle CLI tools
         # The brew cask is deprecated for 2026-09-01 (Gatekeeper-related),
@@ -336,8 +336,8 @@ jobs:
       - name: Sign update zip + emit appcast.xml
         # Uses the EdDSA private key stored as the SPARKLE_ED_PRIVATE_KEY
         # repo secret. The matching public key is committed in
-        # Chronicle/Resources/Info.plist.in under SUPublicEDKey, so each
-        # Chronicle build verifies updates against this signature.
+        # HistoryClaude/Resources/Info.plist.in under SUPublicEDKey, so each
+        # HistoryClaude build verifies updates against this signature.
         #
         # The trap on EXIT guarantees the temp private-key file is
         # deleted even if sign_update or any subsequent command fails
@@ -355,7 +355,7 @@ jobs:
           # Run with -x re-enabled but only after the secret write,
           # so the secret content is never traced in the runner log.
           set -x
-          sign_update -f "$PRIV" "Chronicle-${REF_NAME#v}.zip" \
+          sign_update -f "$PRIV" "HistoryClaude-${REF_NAME#v}.zip" \
             > sparkle-attrs.txt
           cat sparkle-attrs.txt
           bash .github/scripts/emit-appcast.sh > appcast.xml
@@ -388,13 +388,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Chronicle-*.zip
-            Chronicle-*.zip.sha256
-            Chronicle-*.dmg
-            Chronicle-*.dmg.sha256
-            Chronicle-*.pkg
-            Chronicle-*.pkg.sha256
-            Chronicle-*.shasums
+            HistoryClaude-*.zip
+            HistoryClaude-*.zip.sha256
+            HistoryClaude-*.dmg
+            HistoryClaude-*.dmg.sha256
+            HistoryClaude-*.pkg
+            HistoryClaude-*.pkg.sha256
+            HistoryClaude-*.shasums
             appcast.xml
           fail_on_unmatched_files: true
           body_path: release-body.md

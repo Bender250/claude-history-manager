@@ -1,6 +1,6 @@
-# Chronicle Icon Branding
+# History Claude Icon Branding
 
-This directory contains the production icon exports for Chronicle, the native macOS Claude Code session history browser.
+This directory contains the production icon exports for History Claude, the native macOS Claude Code session history browser.
 
 ## Palette
 
@@ -8,7 +8,7 @@ This directory contains the production icon exports for Chronicle, the native ma
 - Accent coral: `#FF7A4D`
 - Corner gradient target: `#1A1C20`
 
-Rationale: the icon keeps the app in the same visual family as `Theme.Color.bg` and the existing coral `CL` menubar mark in [ChronicleApp.swift](/Users/josephyaduvanshi/Code/swift/apps/claude-history-manager/Chronicle/ChronicleApp.swift:120). The exported background is a slightly cleaner near-black than the in-app surface token so the icon stays crisp in the macOS dock while still reading as Chronicle's dark UI. The coral frame and condensed `CL` directly mirror the app's menubar badge geometry and accent usage.
+Rationale: the icon keeps the app in the same visual family as `Theme.Color.bg` and the existing coral `CL` menubar mark in [HistoryClaudeApp.swift](/Users/josephyaduvanshi/Code/swift/apps/claude-history-manager/HistoryClaude/HistoryClaudeApp.swift:120). The exported background is a slightly cleaner near-black than the in-app surface token so the icon stays crisp in the macOS dock while still reading as History Claude's dark UI. The coral frame and condensed `CL` directly mirror the app's menubar badge geometry and accent usage.
 
 Font note: the generator prefers condensed bold system faces. On this machine it resolves to `Arial Narrow Bold` from `/System/Library/Fonts/Supplemental/Arial Narrow Bold.ttf`. If that font is unavailable later, the script falls back to `DIN Condensed Bold`, `Avenir Next Condensed`, `HelveticaNeue`, `SFNS`, then `Arial Bold`.
 
@@ -73,7 +73,7 @@ Apple's `.iconset` format does not use standalone `icon_64x64.png` or `icon_1024
 Copy the icon into the app bundle resources:
 
 ```bash
-cp docs/branding/icon.icns Chronicle.app/Contents/Resources/AppIcon.icns
+cp docs/branding/icon.icns HistoryClaude.app/Contents/Resources/AppIcon.icns
 ```
 
 Then ensure `Info.plist` uses:

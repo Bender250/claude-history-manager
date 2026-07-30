@@ -29,22 +29,22 @@ jobs:
         run: swift test --parallel --num-workers 1
 
       - name: Build GUI (release) verifies linking
-        run: swift build -c release --product Chronicle
+        run: swift build -c release --product HistoryClaude
 
       - name: Build CLI (release) verifies linking
-        run: swift build -c release --product chronicle
+        run: swift build -c release --product history-claude
 
       - name: CLI smoke test
         run: |
           set -euxo pipefail
-          BIN=$(swift build -c release --product chronicle --show-bin-path)/chronicle
+          BIN=$(swift build -c release --product history-claude --show-bin-path)/history-claude
           "$BIN" --version
           "$BIN" --help | head -5
 
       - name: SDK floor check (binary must back-deploy to macOS 15)
         run: |
           set -euxo pipefail
-          BIN=$(swift build -c release --product Chronicle --show-bin-path)/Chronicle
+          BIN=$(swift build -c release --product HistoryClaude --show-bin-path)/HistoryClaude
           MINOS=$(otool -l "$BIN" | awk '/LC_BUILD_VERSION/{f=1} f && /minos/{print $2; exit}')
           if [ "$MINOS" != "15.0" ]; then
             echo "::error::minos=$MINOS, expected 15.0 — Package.swift platforms drift"

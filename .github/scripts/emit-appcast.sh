@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Emit a Sparkle 2.x appcast.xml RSS feed listing the most recent
-# published, non-draft, non-prerelease releases of Chronicle.
+# published, non-draft, non-prerelease releases of HistoryClaude.
 #
 # Inputs (from env):
 #   - REF_NAME — the tag currently being released, e.g. "v0.2.1".
@@ -9,7 +9,7 @@
 #
 # Inputs (from disk):
 #   - sparkle-attrs.txt — single-line `sparkle:edSignature="..."
-#     length="..."` emitted by `sign_update Chronicle-<v>.zip` in the
+#     length="..."` emitted by `sign_update HistoryClaude-<v>.zip` in the
 #     prior CI step.
 #
 # Output: full appcast.xml on stdout.
@@ -55,9 +55,9 @@ cat <<XML_HEADER
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
   <channel>
-    <title>Chronicle</title>
+    <title>HistoryClaude</title>
     <link>https://github.com/${REPO}</link>
-    <description>Updates for Chronicle, the macOS browser for CLI coding-assistant session histories.</description>
+    <description>Updates for HistoryClaude, the macOS browser for CLI coding-assistant session histories.</description>
     <language>en</language>
 XML_HEADER
 
@@ -86,7 +86,7 @@ XML_HEADER
     exit 1
   fi
   current_build=$(( M * 10000 + m * 100 + p ))
-  current_zip_url="https://github.com/${REPO}/releases/download/${CURRENT_TAG}/Chronicle-${CURRENT_VER}.zip"
+  current_zip_url="https://github.com/${REPO}/releases/download/${CURRENT_TAG}/HistoryClaude-${CURRENT_VER}.zip"
   current_pub_date=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
 
   # Use the hand-written release-notes file as the description if
@@ -136,7 +136,7 @@ gh api --paginate "repos/${REPO}/releases?per_page=100" \
       ver="${tag#v}"
 
       zip_url=$(echo "$release" \
-        | jq -r --arg v "$ver" '.assets[] | select(.name == "Chronicle-\($v).zip") | .browser_download_url' \
+        | jq -r --arg v "$ver" '.assets[] | select(.name == "HistoryClaude-\($v).zip") | .browser_download_url' \
         | head -n 1)
       if [ -z "$zip_url" ] || [ "$zip_url" = "null" ]; then
         # No .zip asset for this release — skip rather than emit a broken item.

@@ -27,5 +27,5 @@ This project bundles third-party software under compatible open-source licenses:
 - GRDB.swift — MIT License (see https://github.com/groue/GRDB.swift)
 - swift-markdown-ui — MIT License (see https://github.com/gonzalezreal/swift-markdown-ui)
 - Splash — MIT License (see https://github.com/JohnSundell/Splash)
-- Bricolage Grotesque — SIL Open Font License 1.1 (see Chronicle/Resources/Fonts/OFL-Bricolage.txt)
-- Geist and Geist Mono — SIL Open Font License 1.1 (see Chronicle/Resources/Fonts/OFL-Geist.txt)
+- Bricolage Grotesque — SIL Open Font License 1.1 (see HistoryClaude/Resources/Fonts/OFL-Bricolage.txt)
+- Geist and Geist Mono — SIL Open Font License 1.1 (see HistoryClaude/Resources/Fonts/OFL-Geist.txt)

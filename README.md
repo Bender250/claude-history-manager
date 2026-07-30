@@ -1,10 +1,10 @@
 <h1 align="center">
   <br>
   <a href="https://github.com/josephyaduvanshi/claude-history-manager">
-    <img src="docs/branding/icon-1024.png" alt="Chronicle" width="180">
+    <img src="docs/branding/icon-1024.png" alt="History Claude" width="180">
   </a>
   <br>
-  Chronicle
+  History Claude
   <br>
 </h1>
 
@@ -50,12 +50,12 @@
 
 ---
 
-Three CLI coding assistants, three different transcript formats, all sitting in different corners of your home directory. Claude Code writes JSONL under `~/.claude/projects/`. Codex CLI writes JSONL under `~/.codex/sessions/`. Gemini CLI writes single JSON files under `~/.gemini/tmp/`. After a few weeks of real use, those folders are unreadable, ungreppable, and the only way to find the session where you actually solved that one bug is to remember which workspace you were in and scroll through `ls -lt`. Chronicle reads all three, indexes every session into a local SQLite database, and gives you somewhere to actually look at them. Per-provider data isolation: switching providers swaps every list, count, and stat, so a Claude pin doesn't leak into your Codex sidebar. Pin the ones that matter. Tag the ones you're tracking. Resume any of them in one keystroke, in whichever terminal you prefer.
+Three CLI coding assistants, three different transcript formats, all sitting in different corners of your home directory. Claude Code writes JSONL under `~/.claude/projects/`. Codex CLI writes JSONL under `~/.codex/sessions/`. Gemini CLI writes single JSON files under `~/.gemini/tmp/`. After a few weeks of real use, those folders are unreadable, ungreppable, and the only way to find the session where you actually solved that one bug is to remember which workspace you were in and scroll through `ls -lt`. History Claude reads all three, indexes every session into a local SQLite database, and gives you somewhere to actually look at them. Per-provider data isolation: switching providers swaps every list, count, and stat, so a Claude pin doesn't leak into your Codex sidebar. Pin the ones that matter. Tag the ones you're tracking. Resume any of them in one keystroke, in whichever terminal you prefer.
 
 Transcripts never leave the Mac they were written on.
 
 <p align="center">
-  <img src="docs/branding/screenshots/01-main.png" alt="Chronicle main window" width="900">
+  <img src="docs/branding/screenshots/01-main.png" alt="History Claude main window" width="900">
 </p>
 
 ---
@@ -65,60 +65,60 @@ Transcripts never leave the Mac they were written on.
 ### Homebrew (recommended)
 
 ```bash
-brew tap josephyaduvanshi/chronicle
-brew install --cask chronicle
+brew tap josephyaduvanshi/history-claude
+brew install --cask history-claude
 ```
 
 The cask handles the download, the drag into `/Applications`, and the Gatekeeper unquarantine step in one go. To update later:
 
 ```bash
 brew update                              # refreshes the tap; the tap auto-bumps on every release
-brew upgrade --cask chronicle
+brew upgrade --cask history-claude
 ```
 
-If you previously installed Chronicle by dragging the `.app` manually and now want Homebrew to take over, add `--force`:
+If you previously installed History Claude by dragging the `.app` manually and now want Homebrew to take over, add `--force`:
 
 ```bash
-brew install --cask chronicle --force    # overwrites the manual install + registers it with brew
+brew install --cask history-claude --force    # overwrites the manual install + registers it with brew
 ```
 
 If `brew install` reports a 404 on the DMG, your local tap cache is stale — run `brew update` first.
 
-Tap source: [josephyaduvanshi/homebrew-chronicle](https://github.com/josephyaduvanshi/homebrew-chronicle).
+Tap source: [josephyaduvanshi/homebrew-history-claude](https://github.com/josephyaduvanshi/homebrew-history-claude).
 
 ### Installer (.pkg)
 
-For the lowest-friction install without Homebrew. Download `Chronicle-<version>.pkg` from the latest [GitHub Release](https://github.com/josephyaduvanshi/claude-history-manager/releases), double-click, follow the prompts. The installer drops `Chronicle.app` in `/Applications/` and strips the Gatekeeper quarantine via a postinstall script. macOS will warn that the package isn't signed by an identified developer; right-click the `.pkg` and choose Open the first time.
+For the lowest-friction install without Homebrew. Download `HistoryClaude-<version>.pkg` from the latest [GitHub Release](https://github.com/josephyaduvanshi/claude-history-manager/releases), double-click, follow the prompts. The installer drops `HistoryClaude.app` in `/Applications/` and strips the Gatekeeper quarantine via a postinstall script. macOS will warn that the package isn't signed by an identified developer; right-click the `.pkg` and choose Open the first time.
 
 ### Disk image (.dmg)
 
-Download `Chronicle-<version>.dmg` from the [release page](https://github.com/josephyaduvanshi/claude-history-manager/releases), mount it, drag `Chronicle.app` onto the Applications shortcut, then run:
+Download `HistoryClaude-<version>.dmg` from the [release page](https://github.com/josephyaduvanshi/claude-history-manager/releases), mount it, drag `HistoryClaude.app` onto the Applications shortcut, then run:
 
 ```bash
-xattr -cr /Applications/Chronicle.app
+xattr -cr /Applications/HistoryClaude.app
 ```
 
 ### Download the .zip
 
-1. Grab `Chronicle-<version>.zip` from the latest [GitHub Release](https://github.com/josephyaduvanshi/claude-history-manager/releases).
-2. Unzip and drag `Chronicle.app` into `/Applications/`.
+1. Grab `HistoryClaude-<version>.zip` from the latest [GitHub Release](https://github.com/josephyaduvanshi/claude-history-manager/releases).
+2. Unzip and drag `HistoryClaude.app` into `/Applications/`.
 3. Strip the Gatekeeper quarantine attribute so macOS will launch the ad-hoc-signed binary:
 
    ```bash
-   xattr -cr /Applications/Chronicle.app
+   xattr -cr /Applications/HistoryClaude.app
    ```
 
-4. Open Chronicle. The first launch indexes `~/.claude/projects/` (about 60 to 90 seconds for a few thousand sessions). If the sidebar stays empty, grant Full Disk Access in `System Settings` > `Privacy & Security` > `Full Disk Access` and relaunch.
+4. Open History Claude. The first launch indexes `~/.claude/projects/` (about 60 to 90 seconds for a few thousand sessions). If the sidebar stays empty, grant Full Disk Access in `System Settings` > `Privacy & Security` > `Full Disk Access` and relaunch.
 
-If you skip the `xattr` step, Chronicle still launches but shows an in-app card with the same one-liner and a copy-to-clipboard button.
+If you skip the `xattr` step, History Claude still launches but shows an in-app card with the same one-liner and a copy-to-clipboard button.
 
 > [!NOTE]
-> Chronicle is ad-hoc signed, not notarized. Apple notarization needs a paid Developer ID ($99/year) which this project doesn't carry yet. The binary you download is bit-for-bit what the GitHub Actions workflow builds from `main`, and the release page lists the SHA256 if you want to verify. See [First launch on macOS](#first-launch-on-macos) below for exactly which dialogs you'll see and how to dismiss them once.
+> History Claude is ad-hoc signed, not notarized. Apple notarization needs a paid Developer ID ($99/year) which this project doesn't carry yet. The binary you download is bit-for-bit what the GitHub Actions workflow builds from `main`, and the release page lists the SHA256 if you want to verify. See [First launch on macOS](#first-launch-on-macos) below for exactly which dialogs you'll see and how to dismiss them once.
 
 <a id="linux-cli"></a>
 ### Linux CLI
 
-There's also a small companion `chronicle` CLI for Linux (and macOS) that reads the same `~/.claude/projects/` tree directly without the SQLite indexer. Useful on remote Linux dev boxes where the GUI app can't run.
+There's also a small companion `history-claude` CLI for Linux (and macOS) that reads the same `~/.claude/projects/` tree directly without the SQLite indexer. Useful on remote Linux dev boxes where the GUI app can't run.
 
 ```bash
 # Pick the right architecture (x86_64 or aarch64). Replace 0.1.4 with the
@@ -126,21 +126,21 @@ There's also a small companion `chronicle` CLI for Linux (and macOS) that reads 
 VERSION=0.1.4
 ARCH=$(uname -m); case "$ARCH" in aarch64|arm64) ARCH=aarch64 ;; *) ARCH=x86_64 ;; esac
 
-curl -fsSL "https://github.com/josephyaduvanshi/claude-history-manager/releases/download/v${VERSION}/chronicle-${VERSION}-linux-${ARCH}.tar.gz" \
+curl -fsSL "https://github.com/josephyaduvanshi/claude-history-manager/releases/download/v${VERSION}/history-claude-${VERSION}-linux-${ARCH}.tar.gz" \
   | tar xz -C /tmp
-sudo install -m 0755 /tmp/chronicle /usr/local/bin/chronicle
-chronicle --version
+sudo install -m 0755 /tmp/history-claude /usr/local/bin/history-claude
+history-claude --version
 ```
 
-Verify the SHA256 if you want — the release page lists `chronicle-<version>-linux-<arch>.tar.gz.sha256` next to each tarball.
+Verify the SHA256 if you want — the release page lists `history-claude-<version>-linux-<arch>.tar.gz.sha256` next to each tarball.
 
 The CLI exposes four commands:
 
 ```bash
-chronicle list                       # workspaces with session counts + last activity
-chronicle sessions [-w <workspace>]  # sessions in a workspace, newest first
-chronicle search "EXC_BAD_ACCESS"    # substring search across every transcript
-chronicle show <session-id>          # print a transcript (use --format raw for JSONL)
+history-claude list                       # workspaces with session counts + last activity
+history-claude sessions [-w <workspace>]  # sessions in a workspace, newest first
+history-claude search "EXC_BAD_ACCESS"    # substring search across every transcript
+history-claude show <session-id>          # print a transcript (use --format raw for JSONL)
 ```
 
 It's Foundation-only Swift, statically linked against the Swift stdlib, single-file. No daemon, no SQLite, no FTS index — it reads the JSONL files on demand and stays out of your way.
@@ -148,16 +148,16 @@ It's Foundation-only Swift, statically linked against the Swift stdlib, single-f
 <a id="first-launch-on-macos"></a>
 ### First launch on macOS — what Gatekeeper will show you
 
-Chronicle is **ad-hoc signed, not notarized**. That's a one-time UX cost, not a quality cost. Here's exactly what each install method asks of you the first time, and never again.
+History Claude is **ad-hoc signed, not notarized**. That's a one-time UX cost, not a quality cost. Here's exactly what each install method asks of you the first time, and never again.
 
 | Install method | What macOS shows on first launch | What you do | What it costs you |
 |---|---|---|---|
-| `brew install --cask chronicle` | Nothing — Homebrew runs the `.pkg`, the `.pkg`'s postinstall strips the quarantine attribute on `/Applications/Chronicle.app`, and the app opens clean. | Just `brew install --cask chronicle`. | One Gatekeeper warning on the *installer* the very first time you run a `.pkg` from this project; future tap updates don't re-prompt. |
+| `brew install --cask history-claude` | Nothing — Homebrew runs the `.pkg`, the `.pkg`'s postinstall strips the quarantine attribute on `/Applications/HistoryClaude.app`, and the app opens clean. | Just `brew install --cask history-claude`. | One Gatekeeper warning on the *installer* the very first time you run a `.pkg` from this project; future tap updates don't re-prompt. |
 | Download `.pkg` | "macOS cannot verify the developer of this package." | Right-click the `.pkg` → **Open** → **Open** in the second dialog. | One extra click. |
-| Download `.dmg` | "Apple could not verify Chronicle is free of malware." | Run `xattr -cr /Applications/Chronicle.app` in Terminal once, or right-click `Chronicle.app` → **Open** → **Open**. | One extra click *or* one shell command. |
+| Download `.dmg` | "Apple could not verify History Claude is free of malware." | Run `xattr -cr /Applications/HistoryClaude.app` in Terminal once, or right-click `HistoryClaude.app` → **Open** → **Open**. | One extra click *or* one shell command. |
 | Download `.zip` | Same as `.dmg`. | Same as `.dmg`. | Same. |
 
-**Why does this happen?** Apple's Gatekeeper trusts binaries signed with a paid Developer ID and notarized by Apple's servers. Chronicle is signed with an ad-hoc key (no developer account on this project yet), so macOS asks you to confirm once that you trust the source. After that confirmation, the binary launches normally forever.
+**Why does this happen?** Apple's Gatekeeper trusts binaries signed with a paid Developer ID and notarized by Apple's servers. History Claude is signed with an ad-hoc key (no developer account on this project yet), so macOS asks you to confirm once that you trust the source. After that confirmation, the binary launches normally forever.
 
 **Privacy note.** The Gatekeeper warning is *not* a malware detection — Apple just hasn't notarized this build. The app's source is in this repository, the GitHub Actions workflow at `.github/workflows/release.yml` builds the binary you download, and every release lists a `.shasums` file so you can verify the bytes if you care.
 
@@ -165,13 +165,13 @@ If you want zero-friction installs and are willing to spend $99/year, see [issue
 
 ### Build from source
 
-Chronicle is a pure Swift Package. No Xcode project, no signing setup, no Brewfile. If you have a recent Xcode toolchain installed, you have everything you need.
+History Claude is a pure Swift Package. No Xcode project, no signing setup, no Brewfile. If you have a recent Xcode toolchain installed, you have everything you need.
 
 ```bash
 git clone https://github.com/josephyaduvanshi/claude-history-manager.git
 cd claude-history-manager
 swift build -c release
-.build/release/Chronicle
+.build/release/HistoryClaude
 ```
 
 Running the raw binary works for hacking on it. For a real `.app` bundle (the kind macOS treats like a normal application, with a Dock icon and proper `Info.plist`), use the GitHub Actions workflow at `.github/workflows/release.yml` as a template, or copy the binary into a hand-rolled bundle alongside `Resources/Info.plist.in`.
@@ -180,7 +180,7 @@ Running the raw binary works for hacking on it. For a real `.app` bundle (the ki
 
 ## How it works
 
-Chronicle is a SwiftUI app on top of two boring layers. Parsers read each provider's transcript format. Claude and Codex use JSON Lines (one event per line); Gemini uses a single JSON file per session. The parser pulls out title, message count, token usage, model, tools used, and timestamps, then writes that into SQLite via [GRDB](https://github.com/groue/GRDB.swift). A file-system watcher reindexes only the files whose size or `mtime` actually changed, so a warm cache for 35 workspaces and 440 sessions reopens in around 75 milliseconds.
+History Claude is a SwiftUI app on top of two boring layers. Parsers read each provider's transcript format. Claude and Codex use JSON Lines (one event per line); Gemini uses a single JSON file per session. The parser pulls out title, message count, token usage, model, tools used, and timestamps, then writes that into SQLite via [GRDB](https://github.com/groue/GRDB.swift). A file-system watcher reindexes only the files whose size or `mtime` actually changed, so a warm cache for 35 workspaces and 440 sessions reopens in around 75 milliseconds.
 
 Full-text search hits an FTS5 virtual table that's built lazily the first time you type `/full:`. Everything else (the menubar, the stats dashboard, the heatmaps, the smart folders) runs against the same in-process SQLite handle. There's no daemon, no background process, no helper binary. When the app isn't running, nothing is running.
 
@@ -196,7 +196,7 @@ Title search runs against indexed metadata for instant results. Type `/full: err
 
 ### Workspaces, color-coded
 
-Every provider stores sessions under a different layout. Claude Code uses `~/.claude/projects/` with the project path encoded as a folder name like `-Users-you-Code-flutter-myapp`. Codex writes rollouts to `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl` and groups by each session's `cwd`. Gemini writes chats to `~/.gemini/tmp/<project-dir>/chats/session-*.json`. Chronicle decodes all three back into real paths, then buckets each workspace into one of nine categories: AI/CLAUDE, FLUTTER, SECURITY, RUST, GO, PYTHON, WEB, WORK, OTHER. Each category gets its own hue in the sidebar and click-to-collapse headers, so the workspace list stays scannable even when you have 35 of them.
+Every provider stores sessions under a different layout. Claude Code uses `~/.claude/projects/` with the project path encoded as a folder name like `-Users-you-Code-flutter-myapp`. Codex writes rollouts to `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl` and groups by each session's `cwd`. Gemini writes chats to `~/.gemini/tmp/<project-dir>/chats/session-*.json`. History Claude decodes all three back into real paths, then buckets each workspace into one of nine categories: AI/CLAUDE, FLUTTER, SECURITY, RUST, GO, PYTHON, WEB, WORK, OTHER. Each category gets its own hue in the sidebar and click-to-collapse headers, so the workspace list stays scannable even when you have 35 of them.
 
 ### Smart folders
 
@@ -242,7 +242,7 @@ A green pulse marks sessions any of the three CLIs is currently writing to. Poll
 
 ### iCloud Drive metadata sync
 
-Pins, tags, archive flags, smart folders, custom titles, and notes sync via a single JSON file at `~/Library/Mobile Documents/com~apple~CloudDocs/Chronicle/chronicle-sync.json`. Every record carries the provider it belongs to, so a Codex pin on Mac A doesn't show up under Claude on Mac B. Transcripts stay on the device they were generated on. The sync model is last-write-wins per record with a small per-tag merge so two of your own machines stay consistent. It is not designed for collaborative editing, which Chronicle doesn't support.
+Pins, tags, archive flags, smart folders, custom titles, and notes sync via a single JSON file at `~/Library/Mobile Documents/com~apple~CloudDocs/HistoryClaude/history-claude-sync.json`. Every record carries the provider it belongs to, so a Codex pin on Mac A doesn't show up under Claude on Mac B. Transcripts stay on the device they were generated on. The sync model is last-write-wins per record with a small per-tag merge so two of your own machines stay consistent. It is not designed for collaborative editing, which History Claude doesn't support.
 
 ### Quick Look
 
@@ -256,9 +256,9 @@ Press `⌘Y` on any selected session for a 300x480 popover preview of the first 
 
 ## Privacy
 
-Chronicle runs entirely on your Mac. The app reads `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.gemini/tmp/` for session data, and writes a single SQLite database to `~/Library/Application Support/Chronicle/chronicle.sqlite`. That's it. Transcripts are not uploaded, summarized, embedded, or sent to any external service.
+History Claude runs entirely on your Mac. The app reads `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.gemini/tmp/` for session data, and writes a single SQLite database to `~/Library/Application Support/HistoryClaude/history-claude.sqlite`. That's it. Transcripts are not uploaded, summarized, embedded, or sent to any external service.
 
-When you turn iCloud sync on, Chronicle writes one file inside your iCloud Drive: `~/Library/Mobile Documents/com~apple~CloudDocs/Chronicle/chronicle-sync.json`. That file contains tags, pin flags, archive flags, custom titles, notes, and smart-folder definitions. It does not contain transcripts, message bodies, file paths beyond the workspace name, or any session content. If you want to see exactly what's in there, open the file. It's plain JSON.
+When you turn iCloud sync on, History Claude writes one file inside your iCloud Drive: `~/Library/Mobile Documents/com~apple~CloudDocs/HistoryClaude/history-claude-sync.json`. That file contains tags, pin flags, archive flags, custom titles, notes, and smart-folder definitions. It does not contain transcripts, message bodies, file paths beyond the workspace name, or any session content. If you want to see exactly what's in there, open the file. It's plain JSON.
 
 There is no telemetry, no crash reporter, no analytics, no "anonymous usage data". The only outbound network call the app makes is the GitHub Releases check, and only when you click `Check for updates...`.
 
@@ -291,7 +291,7 @@ Settings (`⌘,`) is grouped into four panes:
 
 | Theme | Mode | Vibe |
 |---|---|---|
-| Dark Chronicle | dark | Default. Coral on near-black, the look you see in the screenshots above. |
+| Dark History Claude | dark | Default. Coral on near-black, the look you see in the screenshots above. |
 | Github | light | GitHub Light feel. Blue accent, clean white surfaces. |
 | Gothic | dark | Deep purple on near-black. Blood-red highlights. |
 | Newsprint | light | Sepia and cream. Warm brown accent. Reads like a paperback. |
@@ -299,7 +299,7 @@ Settings (`⌘,`) is grouped into four panes:
 | Pixyll | light | Tufte-flavored white. Red accent. Sharp narrow rules. |
 | Whitey | light | Near-monochrome. Coral accent stays. The minimal end of the spectrum. |
 
-Plus eight coral accent presets and a custom color picker (these only apply to Dark Chronicle and Whitey, the two themes designed around coral). Three density modes: compact, comfortable, spacious. Density affects row height, padding, and the metadata pane's font size.
+Plus eight coral accent presets and a custom color picker (these only apply to Dark History Claude and Whitey, the two themes designed around coral). Three density modes: compact, comfortable, spacious. Density affects row height, padding, and the metadata pane's font size.
 
 **Sync.** Toggle iCloud Drive sync on or off. Shows last-pull and last-push timestamps. `Sync now` forces a pull-then-push round trip. Surfaces the last error inline if a write failed (usually because iCloud Drive is paused or the user isn't signed in).
 
@@ -307,7 +307,7 @@ Plus eight coral accent presets and a custom color picker (these only apply to D
 
 **Editor.** Pick the default editor for `Open in <Editor>` actions: VS Code, Cursor, Zed, or Xcode. Same install-detection logic as Terminal.
 
-Preferences live in `UserDefaults` under the `chronicle.*` keys. The SQLite database lives at `~/Library/Application Support/Chronicle/chronicle.sqlite`. Removing the support folder gives you a clean re-index on next launch.
+Preferences live in `UserDefaults` under the `history-claude.*` keys. The SQLite database lives at `~/Library/Application Support/HistoryClaude/history-claude.sqlite`. Removing the support folder gives you a clean re-index on next launch.
 
 ---
 
@@ -315,30 +315,30 @@ Preferences live in `UserDefaults` under the `chronicle.*` keys. The SQLite data
 
 ### Why macOS 15 only?
 
-Chronicle uses SwiftUI features and font APIs (variable-font width and optical sizing on `Font.custom`) that ship in macOS 15. Backporting to 14 means rewriting the type system and dropping a few visual touches. macOS 15 has been out long enough to be widely adopted, so the trade isn't worth it. If you're not on macOS 15, this won't even launch.
+History Claude uses SwiftUI features and font APIs (variable-font width and optical sizing on `Font.custom`) that ship in macOS 15. Backporting to 14 means rewriting the type system and dropping a few visual touches. macOS 15 has been out long enough to be widely adopted, so the trade isn't worth it. If you're not on macOS 15, this won't even launch.
 
 ### How do I uninstall?
 
-Drag `Chronicle.app` from `/Applications/` to the Trash, then remove the database and preferences:
+Drag `HistoryClaude.app` from `/Applications/` to the Trash, then remove the database and preferences:
 
 ```bash
-rm -rf ~/Library/Application\ Support/Chronicle
-defaults delete com.chronicle.app
+rm -rf ~/Library/Application\ Support/HistoryClaude
+defaults delete com.historyclaude.app
 ```
 
-If you turned on iCloud sync and want to wipe the cloud copy too, delete `~/Library/Mobile Documents/com~apple~CloudDocs/Chronicle/`.
+If you turned on iCloud sync and want to wipe the cloud copy too, delete `~/Library/Mobile Documents/com~apple~CloudDocs/HistoryClaude/`.
 
 ### Where is my data stored?
 
 All on your Mac, in a few different places:
 
-- `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.gemini/tmp/` are the source-of-truth transcripts each CLI writes. Chronicle reads these but never writes to them.
-- `~/Library/Application Support/Chronicle/chronicle.sqlite` is Chronicle's own index, plus your pins, tags, notes, custom titles, and smart-folder definitions. Every record carries which provider it belongs to so the three datasets stay separate.
-- `~/Library/Mobile Documents/com~apple~CloudDocs/Chronicle/chronicle-sync.json` is only present if you turned on iCloud sync. Metadata only — no transcripts.
+- `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.gemini/tmp/` are the source-of-truth transcripts each CLI writes. History Claude reads these but never writes to them.
+- `~/Library/Application Support/HistoryClaude/history-claude.sqlite` is History Claude's own index, plus your pins, tags, notes, custom titles, and smart-folder definitions. Every record carries which provider it belongs to so the three datasets stay separate.
+- `~/Library/Mobile Documents/com~apple~CloudDocs/HistoryClaude/history-claude-sync.json` is only present if you turned on iCloud sync. Metadata only — no transcripts.
 
 ### Is the app sandboxed?
 
-No. Chronicle reads from `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.gemini/tmp/`, writes to its own Application Support folder, and shells out to launch terminals. None of that works under the App Sandbox. If a future App Store release happens, sandboxing is on the table; for now, the binary is plain and unsandboxed.
+No. History Claude reads from `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.gemini/tmp/`, writes to its own Application Support folder, and shells out to launch terminals. None of that works under the App Sandbox. If a future App Store release happens, sandboxing is on the table; for now, the binary is plain and unsandboxed.
 
 ### Can I sync to iCloud?
 
@@ -346,11 +346,11 @@ Yes. Toggle it on in Settings > Sync. Only metadata syncs (tags, pins, notes, cu
 
 ### Why is the app ad-hoc signed instead of notarized?
 
-Notarization requires a paid Apple Developer ID ($99/year). This project doesn't have one yet. Until that changes, Chronicle ships ad-hoc signed and you'll need to run `xattr -cr /Applications/Chronicle.app` once on first install. The first-launch in-app card detects the quarantine attribute and shows the command with a copy button so you don't have to remember it.
+Notarization requires a paid Apple Developer ID ($99/year). This project doesn't have one yet. Until that changes, History Claude ships ad-hoc signed and you'll need to run `xattr -cr /Applications/HistoryClaude.app` once on first install. The first-launch in-app card detects the quarantine attribute and shows the command with a copy button so you don't have to remember it.
 
 ### Is this a plugin for Claude Code, Codex, or Gemini?
 
-No. Chronicle is a standalone macOS app. It reads the same files those CLIs write, but it doesn't hook into them, modify their behaviour, or require any of them to be running.
+No. History Claude is a standalone macOS app. It reads the same files those CLIs write, but it doesn't hook into them, modify their behaviour, or require any of them to be running.
 
 ### Will it slow down my Mac?
 
@@ -368,7 +368,7 @@ Run the tests before sending a PR:
 swift test
 ```
 
-The test suite uses fixture transcript files under `ChronicleTests/Fixtures/` (one folder per provider) so you don't need a populated `~/.claude/projects/`, `~/.codex/sessions/`, or `~/.gemini/tmp/` to run it.
+The test suite uses fixture transcript files under `HistoryClaudeTests/Fixtures/` (one folder per provider) so you don't need a populated `~/.claude/projects/`, `~/.codex/sessions/`, or `~/.gemini/tmp/` to run it.
 
 ---
 
@@ -382,7 +382,7 @@ The repository also bundles third-party fonts, libraries, and brand glyphs under
 
 ## Credits
 
-Chronicle is built on a small set of excellent libraries and fonts:
+History Claude is built on a small set of excellent libraries and fonts:
 
 - [GRDB.swift](https://github.com/groue/GRDB.swift) for SQLite + FTS5
 - [swift-markdown-ui](https://github.com/gonzalezreal/swift-markdown-ui) for transcript rendering

@@ -259,7 +259,7 @@ def main() -> None:
     assert_icns(HERE / "icon.icns")
 
     builder = "iconutil" if used_iconutil else "Pillow fallback"
-    print(f"Generated Chronicle icon set with font: {font_used} ({builder})")
+    print(f"Generated HistoryClaude icon set with font: {font_used} ({builder})")
 
 
 if __name__ == "__main__":

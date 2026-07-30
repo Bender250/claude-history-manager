@@ -1,4 +1,4 @@
-# Contributing to Chronicle
+# Contributing to History Claude
 
 Thanks for considering a contribution. The bar for merging is small enough that one person can hold it in their head, so this doc is short.
 
@@ -8,7 +8,7 @@ If your change is more than ~50 lines or touches the storage layer, open an issu
 
 ## Local setup
 
-Chronicle is a Swift Package. No Xcode project to clone, no extra tools.
+History Claude is a Swift Package. No Xcode project to clone, no extra tools.
 
 ```bash
 git clone https://github.com/josephyaduvanshi/claude-history-manager.git
@@ -22,10 +22,10 @@ You need macOS 15 Tahoe or later and Xcode 16 (Swift 6).
 To run the app from a debug build:
 
 ```bash
-swift run Chronicle
+swift run History Claude
 ```
 
-You'll be prompted to grant Full Disk Access on first launch so Chronicle can read `~/.claude/projects/`.
+You'll be prompted to grant Full Disk Access on first launch so History Claude can read `~/.claude/projects/`.
 
 ## What gets accepted
 
@@ -38,7 +38,7 @@ You'll be prompted to grant Full Disk Access on first launch so Chronicle can re
 ## What probably won't
 
 - Cloud sync of transcripts. iCloud Drive metadata sync is the model; full transcript sync is out of scope
-- Windows or Linux ports. Chronicle is macOS-native and uses native frameworks
+- Windows or Linux ports. History Claude is macOS-native and uses native frameworks
 - Backwards compatibility for macOS 14 or earlier. The codebase uses Swift 6 + macOS 15-only APIs
 - Adding a paid backend service or external API call
 
@@ -46,9 +46,9 @@ You'll be prompted to grant Full Disk Access on first launch so Chronicle can re
 
 - Use `swift-format` defaults. The repo doesn't enforce it via CI yet, but matching what's there is appreciated
 - Comments should be specific about WHY, not what. Don't leave AI-generated filler ("This function leverages...")
-- Tests live in `ChronicleTests/`. Use `XCTest`, name methods `test_subject_does_thing()`
-- New SwiftUI views go under `Chronicle/UI/`; if a view is general infrastructure (like the title bar), put it in `Chronicle/UI/Shell/`
-- New repository methods go behind a focused protocol in `Chronicle/Repository/SessionsRepositoryProtocols.swift`. Don't dump everything on the composite
+- Tests live in `HistoryClaudeTests/`. Use `XCTest`, name methods `test_subject_does_thing()`
+- New SwiftUI views go under `HistoryClaude/UI/`; if a view is general infrastructure (like the title bar), put it in `HistoryClaude/UI/Shell/`
+- New repository methods go behind a focused protocol in `HistoryClaude/Repository/SessionsRepositoryProtocols.swift`. Don't dump everything on the composite
 
 ## Commit style
 
