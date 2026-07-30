@@ -273,6 +273,11 @@ struct AppView: View {
         }
         .onChange(of: state.selectedWorkspace) { _, _ in
             Task { await reloadCurrentSessionList() }
+            // A workspace click while a query is running re-scopes that query
+            // (see AppState.focusWorkspace). When the scope pill was already
+            // narrowed, `showAllWorkspaces` doesn't change, so its own onChange
+            // won't fire and the search has to be kicked from here.
+            if state.isSearching { scheduleSearch() }
         }
         .onChange(of: state.activeTag) { _, _ in
             Task { await reloadCurrentSessionList() }
@@ -376,6 +381,13 @@ struct AppView: View {
                     state.selectedSession = nil
                 }
                 if isStale(myGeneration) { return }
+                // `switchTo` dropped the outgoing provider's results; re-run
+                // the query against the new one so a search survives the
+                // switch instead of either vanishing or showing stale rows.
+                if state.hasSearchInput {
+                    await state.runSearch(using: repository)
+                }
+                if isStale(myGeneration) { return }
                 await reloadUserMetadataOverlays()
                 if isStale(myGeneration) { return }
                 await reloadSmartFolders()
@@ -463,6 +475,10 @@ struct AppView: View {
             try await repo.cleanupCorruptProviderRows()
             AppLogger.app.info(
                 "Cleared corrupt codex/gemini rows on data version upgrade"
+            )
+            try await repo.invalidateParseCache()
+            AppLogger.app.info(
+                "Invalidated parse cache on data version upgrade; titles will be re-derived"
             )
         } catch {
             AppLogger.app.warn(

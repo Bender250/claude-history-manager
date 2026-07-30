@@ -139,11 +139,9 @@ struct SidebarView: View {
                          && state.activeSmartFolder == nil
                          && state.selectedWorkspace?.id == workspace.id)
         ) {
-            // Selecting a workspace leaves tag/archive/smart-folder modes.
-            state.activeTag = nil
-            state.showingArchive = false
-            state.activeSmartFolder = nil
-            state.select(workspace: workspace)
+            // Leaves tag/archive/smart-folder modes, and narrows an active
+            // search to this workspace instead of being masked by it.
+            state.focusWorkspace(workspace)
         }
     }
 
@@ -165,10 +163,12 @@ struct SidebarView: View {
                         onRename: { renamingSmartFolder = folder }
                     ) {
                         // Clicking a smart folder clears workspace/tag/archive scope.
-                        state.showingArchive = false
-                        state.activeTag = nil
-                        state.activeSmartFolder =
-                            (state.activeSmartFolder?.id == folder.id) ? nil : folder
+                        state.focusNonWorkspaceMode {
+                            state.showingArchive = false
+                            state.activeTag = nil
+                            state.activeSmartFolder =
+                                (state.activeSmartFolder?.id == folder.id) ? nil : folder
+                        }
                     }
                 }
             }
@@ -230,8 +230,10 @@ struct SidebarView: View {
                         count: state.tagCounts[tag.id] ?? 0,
                         isSelected: state.activeTag?.id == tag.id
                     ) {
-                        state.showingArchive = false
-                        state.activeTag = (state.activeTag?.id == tag.id) ? nil : tag
+                        state.focusNonWorkspaceMode {
+                            state.showingArchive = false
+                            state.activeTag = (state.activeTag?.id == tag.id) ? nil : tag
+                        }
                     }
                 }
             }
@@ -241,8 +243,10 @@ struct SidebarView: View {
     private var archiveSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                state.activeTag = nil
-                state.showingArchive.toggle()
+                state.focusNonWorkspaceMode {
+                    state.activeTag = nil
+                    state.showingArchive.toggle()
+                }
             } label: {
                 HStack {
                     Text("ARCHIVE")
@@ -288,6 +292,7 @@ struct SidebarView: View {
     /// Jump to a pinned session: select its workspace, clear tag/archive modes,
     /// and select the session itself so the preview pane updates.
     private func selectPinned(_ row: SessionWithMetadata) {
+        state.clearSearch()
         state.showingArchive = false
         state.activeTag = nil
         if let ws = state.workspaces.first(where: { $0.id == row.session.workspaceID }) {

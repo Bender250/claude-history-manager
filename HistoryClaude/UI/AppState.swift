@@ -88,12 +88,19 @@ public final class AppState {
     /// limit to `selectedWorkspace`, effectively an implicit `/in:<ws>` clause.
     public var showAllWorkspaces: Bool = true
 
+    /// True when the search bar itself carries a real query or time filter.
+    /// Distinct from `isSearching`, which also counts the workspace-scope
+    /// pill — that pill alone shouldn't make a workspace click look like a
+    /// search.
+    public var hasSearchInput: Bool {
+        !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || activeTimeWindow != nil
+    }
+
     /// True when any search-bar signal is active and the list should show
     /// `searchResults` rather than `sessionsForSelected`.
     public var isSearching: Bool {
-        !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || activeTimeWindow != nil
-            || !showAllWorkspaces
+        hasSearchInput || !showAllWorkspaces
     }
 
     /// When the repository last finished a bootstrap scan. Used to drive the
@@ -426,6 +433,42 @@ public final class AppState {
         sessionsForSelected = []
     }
 
+    /// Drop every search-bar signal so the results column falls back to
+    /// whatever the sidebar has selected. Sidebar navigation calls this;
+    /// without it an active query pins the list to `searchResults` and every
+    /// click in the sidebar looks like it does nothing.
+    public func clearSearch() {
+        cancelPendingSearch()
+        searchQuery = ""
+        activeTimeWindow = nil
+        showAllWorkspaces = true
+        searchResults = []
+        searchState = .idle
+    }
+
+    /// Sidebar workspace click. With no query running this is plain
+    /// navigation. With a query running, the click *narrows* the query to the
+    /// chosen workspace rather than being ignored — the "This workspace only"
+    /// pill lights up so the narrowing is visible and reversible.
+    public func focusWorkspace(_ workspace: Workspace) {
+        activeTag = nil
+        showingArchive = false
+        activeSmartFolder = nil
+        let narrowing = hasSearchInput
+        select(workspace: workspace)
+        if narrowing {
+            showAllWorkspaces = false
+        }
+    }
+
+    /// Sidebar click on a mode that can't compose with a text query (tag,
+    /// archive, smart folder). Those load their own row set, so an active
+    /// search would simply mask them.
+    public func focusNonWorkspaceMode(_ apply: () -> Void) {
+        clearSearch()
+        apply()
+    }
+
     public func select(session: SessionMetadata) {
         selectedSession = session
     }
@@ -572,6 +615,17 @@ public final class AppState {
 
         cancelPendingSearch()
         clearPreviewStats()
+
+        // `searchResults` holds rows from the provider we're leaving, and
+        // `isSearching` gives them precedence over `sessionsForSelected`.
+        // Dropping them here is what keeps the two providers' sessions from
+        // appearing interleaved after a switch; AppView re-runs the query
+        // against the new provider once its workspaces have loaded. The
+        // workspace scope resets too — it named a workspace of the old
+        // provider, which no longer resolves.
+        searchResults = []
+        searchState = .idle
+        showAllWorkspaces = true
 
         activeProvider = providerID
         saveActiveProviderToDefaults()

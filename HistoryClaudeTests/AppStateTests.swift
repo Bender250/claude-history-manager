@@ -211,4 +211,112 @@ final class AppStateTests: XCTestCase {
         let q = state.composeSearchQuery()
         XCTAssertEqual(q.workspaces, ["my-proj"])
     }
+
+    // MARK: - Search vs. sidebar navigation
+
+    private func workspace(_ id: String) -> Workspace {
+        Workspace(id: id, decodedPath: "/\(id)", group: "g", displayName: id)
+    }
+
+    /// The scope pill alone must not read as "the user is searching" — that
+    /// distinction is what lets a workspace click narrow rather than be masked.
+    func test_hasSearchInput_ignoresWorkspaceScopePill() {
+        let s = AppState()
+        s.showAllWorkspaces = false
+        XCTAssertFalse(s.hasSearchInput)
+        XCTAssertTrue(s.isSearching)
+    }
+
+    func test_clearSearch_dropsEverySearchSignal() throws {
+        let s = AppState()
+        s.searchQuery = "stripe"
+        s.activeTimeWindow = .last30Days
+        s.showAllWorkspaces = false
+        s.searchResults = [try sample("a")]
+        s.searchState = .ready
+
+        s.clearSearch()
+
+        XCTAssertEqual(s.searchQuery, "")
+        XCTAssertNil(s.activeTimeWindow)
+        XCTAssertTrue(s.showAllWorkspaces)
+        XCTAssertTrue(s.searchResults.isEmpty)
+        XCTAssertEqual(s.searchState, .idle)
+        XCTAssertFalse(s.isSearching)
+    }
+
+    /// With a query running, clicking a workspace narrows the query to it
+    /// instead of leaving the (global) result set on screen.
+    func test_focusWorkspace_narrowsScope_whenQueryActive() {
+        let s = AppState()
+        let ws = workspace("proj")
+        s.workspaces = [ws]
+        s.searchQuery = "stripe"
+
+        s.focusWorkspace(ws)
+
+        XCTAssertEqual(s.selectedWorkspace?.id, "proj")
+        XCTAssertFalse(s.showAllWorkspaces)
+        XCTAssertEqual(s.searchQuery, "stripe", "the query itself is kept")
+        XCTAssertEqual(s.composeSearchQuery().workspaces, ["proj"])
+    }
+
+    /// Without a query it's plain navigation — it must not silently flip the
+    /// list into search mode and retitle the column "Search results".
+    func test_focusWorkspace_doesNotEnterSearchMode_whenIdle() {
+        let s = AppState()
+        let ws = workspace("proj")
+        s.workspaces = [ws]
+
+        s.focusWorkspace(ws)
+
+        XCTAssertEqual(s.selectedWorkspace?.id, "proj")
+        XCTAssertTrue(s.showAllWorkspaces)
+        XCTAssertFalse(s.isSearching)
+    }
+
+    func test_focusWorkspace_leavesTagAndArchiveModes() {
+        let s = AppState()
+        let ws = workspace("proj")
+        s.showingArchive = true
+        s.activeTag = Tag(id: 1, name: "t", colorHue: 0)
+
+        s.focusWorkspace(ws)
+
+        XCTAssertFalse(s.showingArchive)
+        XCTAssertNil(s.activeTag)
+        XCTAssertNil(s.activeSmartFolder)
+    }
+
+    /// Tag / archive / smart-folder modes load their own rows, so an active
+    /// search would simply hide them.
+    func test_focusNonWorkspaceMode_clearsSearchThenApplies() {
+        let s = AppState()
+        s.searchQuery = "stripe"
+
+        s.focusNonWorkspaceMode { s.showingArchive = true }
+
+        XCTAssertTrue(s.showingArchive)
+        XCTAssertFalse(s.isSearching)
+    }
+
+    /// A provider switch must not leave the previous provider's results on
+    /// screen — `isSearching` gives them precedence over the reloaded list,
+    /// which is what made the two providers look interleaved.
+    func test_switchTo_dropsOutgoingProviderResults() throws {
+        let s = AppState()
+        s.availableProviders = [.claude, .claudeDesktop]
+        s.searchQuery = "stripe"
+        s.searchResults = [try sample("claude-side hit")]
+        s.searchState = .ready
+        s.showAllWorkspaces = false
+
+        s.switchTo(.claudeDesktop)
+
+        XCTAssertEqual(s.activeProvider, .claudeDesktop)
+        XCTAssertTrue(s.searchResults.isEmpty)
+        XCTAssertEqual(s.searchState, .idle)
+        XCTAssertTrue(s.showAllWorkspaces, "scope named a workspace of the old provider")
+        XCTAssertEqual(s.searchQuery, "stripe", "the query is re-run, not discarded")
+    }
 }

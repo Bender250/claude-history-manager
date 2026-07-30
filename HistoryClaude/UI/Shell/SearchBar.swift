@@ -93,23 +93,27 @@ struct SearchBar: View {
     private var controls: some View {
         @Bindable var s = state
         return HStack(spacing: 8) {
-            // All workspaces pill; active toggles scope between "every workspace"
-            // (implicit no filter) and "just the selected workspace".
+            // Workspace-scope pill. "All workspaces" is the *absence* of a
+            // filter, so it renders muted; narrowing to one workspace is the
+            // real filter and renders accented with a × to clear it. Naming
+            // the workspace matters because clicking one in the sidebar
+            // narrows the scope implicitly (AppState.focusWorkspace) — this
+            // pill is how the user sees that happened.
             Button {
                 withAnimation(.easeOut(duration: 0.12)) {
                     state.showAllWorkspaces.toggle()
                 }
             } label: {
                 if state.showAllWorkspaces {
-                    activePillLabel("All workspaces", showClose: true)
+                    inactivePillLabel("All workspaces")
                 } else {
-                    inactivePillLabel("This workspace only")
+                    activePillLabel("In: \(scopedWorkspaceLabel)", showClose: true)
                 }
             }
             .buttonStyle(PillScaleStyle())
             .help(state.showAllWorkspaces
                   ? "Restrict search to the selected workspace"
-                  : "Search across every workspace")
+                  : "Search across every workspace instead")
 
             Button {
                 withAnimation(.easeOut(duration: 0.12)) {
@@ -150,6 +154,17 @@ struct SearchBar: View {
             .frame(minWidth: 260)
             .background(Theme.Color.bgElev)
         }
+    }
+
+    /// Trailing path component of the scoped workspace — display names run to
+    /// "Documents / vaultjs / legal / knowledge / base / law / collector",
+    /// which would blow out the pill. Matches the session row's breadcrumb.
+    private var scopedWorkspaceLabel: String {
+        guard let display = state.selectedWorkspace?.displayName,
+              let last = display.components(separatedBy: "/").last else {
+            return "this workspace"
+        }
+        return last.trimmingCharacters(in: .whitespaces)
     }
 
     private func inactivePillLabel(_ label: String) -> some View {
