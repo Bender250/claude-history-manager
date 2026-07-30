@@ -129,6 +129,7 @@ public struct JsonlParser: Sendable {
         guard !lines.isEmpty else { throw ParseError.emptyFile }
 
         var firstUserMessage: String?
+        var aiTitle: String?
         var firstTimestamp: Date?
         var lastTimestamp: Date?
         var messageCount = 0
@@ -168,6 +169,16 @@ public struct JsonlParser: Sendable {
                  "queue-operation",
                  "system":
                 break
+
+            // Claude Code writes an `ai-title` line whenever it (re)generates
+            // the model-authored session title, appending a fresh one as the
+            // conversation drifts. Take the last, which is the most current.
+            case "ai-title":
+                if let t = (obj["aiTitle"] as? String)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                   !t.isEmpty {
+                    aiTitle = t
+                }
 
             case "tool_use":
                 // Scan shell invocations for `git push` so we can answer the
@@ -228,8 +239,11 @@ public struct JsonlParser: Sendable {
             }
         }
 
-        // If no user message in this session, use a fallback title; never drop the session
-        let title = firstUserMessage ?? "(no user message)"
+        // Prefer the model-authored title — it summarises the whole session,
+        // where the first user message is just however the conversation
+        // happened to open. Falls back to that message for sessions predating
+        // `ai-title`, and finally to a placeholder so a session is never dropped.
+        let title = aiTitle ?? firstUserMessage ?? "(no user message)"
         let created = firstTimestamp ?? Date()
         let modified = lastTimestamp ?? created
 

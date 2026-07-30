@@ -938,6 +938,25 @@ public extension SessionsRepository {
         }
     }
 
+    // MARK: - Parse-cache invalidation
+
+    /// Zeroes the `(file_size_bytes, file_mtime)` pair every bootstrap uses to
+    /// skip unchanged transcripts, forcing the next pass to re-read and
+    /// re-derive every indexed session. Needed when the *parser* changes rather
+    /// than the files — a mtime-based cache can't tell that the meaning of a
+    /// transcript's bytes has changed. Metadata rows (`user_metadata`, tags,
+    /// pins) are keyed separately and untouched.
+    ///
+    /// Gated behind the `HistoryClaude.bootstrapDataVersion` bump at call sites
+    /// so it costs one slow bootstrap per upgrade rather than one per launch.
+    func invalidateParseCache() async throws {
+        try await databaseForTests.write { db in
+            try db.execute(
+                sql: "UPDATE sessions_index SET file_size_bytes = 0, file_mtime = 0"
+            )
+        }
+    }
+
     // MARK: - Helpers
 
     private static func isDirectory(_ url: URL) -> Bool {

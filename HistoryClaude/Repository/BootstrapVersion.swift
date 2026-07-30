@@ -28,5 +28,11 @@ public enum HistoryClaude {
     ///       `provider IN ('codex','gemini')` workspace / session row
     ///       whose `id` doesn't carry the canonical
     ///       `<provider>:<...>` prefix.
-    public static let bootstrapDataVersion: Int = 2
+    ///  - 3: `JsonlParser` now prefers Claude Code's model-authored
+    ///       `ai-title` line over the first user message when deriving a
+    ///       session title. Existing rows hold the old title and the
+    ///       bootstrap's `(size, mtime)` skip-cache would keep them, so the
+    ///       upgrade also invalidates that cache via
+    ///       `invalidateParseCache()`.
+    public static let bootstrapDataVersion: Int = 3
 }

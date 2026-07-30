@@ -328,4 +328,57 @@ final class JsonlParserTests: XCTestCase {
         XCTAssertEqual(m.tokenCount, 278)
         XCTAssertEqual(m.model, "claude-opus-4-7")
     }
+
+    // MARK: - ai-title
+
+    /// Writes `lines` to a temp jsonl named after `sessionID` and parses it.
+    private func parseTempSession(
+        _ sessionID: String,
+        _ lines: [String]
+    ) throws -> SessionMetadata {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(sessionID).jsonl")
+        try lines.joined(separator: "\n").write(to: tmp, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        return try JsonlParser().parse(url: tmp, workspaceID: "x")
+    }
+
+    func test_parse_prefersAiTitleOverFirstUserMessage() throws {
+        let m = try parseTempSession("55555555-5555-5555-5555-555555555555", [
+            #"{"type":"user","timestamp":"2026-01-01T00:00:00Z","content":"hey can you look at the thing in the repo"}"#,
+            #"{"type":"ai-title","aiTitle":"Investigate flaky watcher test"}"#,
+        ])
+        XCTAssertEqual(m.title, "Investigate flaky watcher test")
+    }
+
+    /// Claude Code appends a fresh `ai-title` as the conversation drifts;
+    /// the newest one describes the session best.
+    func test_parse_aiTitle_lastOccurrenceWins() throws {
+        let m = try parseTempSession("66666666-6666-6666-6666-666666666666", [
+            #"{"type":"user","timestamp":"2026-01-01T00:00:00Z","content":"start"}"#,
+            #"{"type":"ai-title","aiTitle":"First guess at the topic"}"#,
+            #"{"type":"ai-title","aiTitle":"What it actually became"}"#,
+        ])
+        XCTAssertEqual(m.title, "What it actually became")
+    }
+
+    /// Sessions predating `ai-title` — and blank/whitespace titles — must keep
+    /// the first-user-message heuristic rather than falling to a placeholder.
+    func test_parse_blankAiTitle_fallsBackToFirstUserMessage() throws {
+        let m = try parseTempSession("77777777-7777-7777-7777-777777777777", [
+            #"{"type":"user","timestamp":"2026-01-01T00:00:00Z","content":"Add Stripe checkout"}"#,
+            #"{"type":"ai-title","aiTitle":"   "}"#,
+        ])
+        XCTAssertEqual(m.title, "Add Stripe checkout")
+    }
+
+    /// An `ai-title` line carries no timestamp and is not a turn — it must not
+    /// inflate the message count or shift the session's date range.
+    func test_parse_aiTitleLine_doesNotCountAsMessage() throws {
+        let m = try parseTempSession("88888888-8888-8888-8888-888888888888", [
+            #"{"type":"user","timestamp":"2026-01-01T00:00:00Z","content":"hi"}"#,
+            #"{"type":"ai-title","aiTitle":"A title"}"#,
+        ])
+        XCTAssertEqual(m.messageCount, 1)
+    }
 }
