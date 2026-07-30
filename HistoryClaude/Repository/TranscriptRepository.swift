@@ -103,6 +103,20 @@ public actor TranscriptRepository {
                 sessionID: sessionID,
                 workspaceID: workspaceID
             )
+
+        case .claudeDesktop:
+            // Same JSONL walker as Claude Code — the message payloads are
+            // identical. Only the addressing differs: every transcript is
+            // named `audit.jsonl`, so the path comes from the index and
+            // the session UUID has to be supplied explicitly.
+            guard let filePath, !filePath.isEmpty else {
+                return Transcript.empty(sessionID: sessionID, workspaceID: workspaceID)
+            }
+            return try parser.parse(
+                url: URL(fileURLWithPath: filePath),
+                workspaceID: workspaceID,
+                sessionIDOverride: sessionID
+            )
         }
     }
 }

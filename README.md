@@ -50,7 +50,7 @@
 
 ---
 
-Three CLI coding assistants, three different transcript formats, all sitting in different corners of your home directory. Claude Code writes JSONL under `~/.claude/projects/`. Codex CLI writes JSONL under `~/.codex/sessions/`. Gemini CLI writes single JSON files under `~/.gemini/tmp/`. After a few weeks of real use, those folders are unreadable, ungreppable, and the only way to find the session where you actually solved that one bug is to remember which workspace you were in and scroll through `ls -lt`. History Claude reads all three, indexes every session into a local SQLite database, and gives you somewhere to actually look at them. Per-provider data isolation: switching providers swaps every list, count, and stat, so a Claude pin doesn't leak into your Codex sidebar. Pin the ones that matter. Tag the ones you're tracking. Resume any of them in one keystroke, in whichever terminal you prefer.
+Four session sources, four different layouts, all sitting in different corners of your home directory. Claude Code writes JSONL under `~/.claude/projects/`. Codex CLI writes JSONL under `~/.codex/sessions/`. Gemini CLI writes single JSON files under `~/.gemini/tmp/`. Claude Desktop's agent mode writes Claude-Code-shaped JSONL under `~/Library/Application Support/Claude/local-agent-mode-sessions/`. After a few weeks of real use, those folders are unreadable, ungreppable, and the only way to find the session where you actually solved that one bug is to remember which workspace you were in and scroll through `ls -lt`. History Claude reads all of them, indexes every session into a local SQLite database, and gives you somewhere to actually look at them. Per-provider data isolation: switching providers swaps every list, count, and stat, so a Claude pin doesn't leak into your Codex sidebar. Pin the ones that matter. Tag the ones you're tracking. Resume any of them in one keystroke, in whichever terminal you prefer.
 
 Transcripts never leave the Mac they were written on.
 
@@ -196,7 +196,7 @@ Title search runs against indexed metadata for instant results. Type `/full: err
 
 ### Workspaces, color-coded
 
-Every provider stores sessions under a different layout. Claude Code uses `~/.claude/projects/` with the project path encoded as a folder name like `-Users-you-Code-flutter-myapp`. Codex writes rollouts to `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl` and groups by each session's `cwd`. Gemini writes chats to `~/.gemini/tmp/<project-dir>/chats/session-*.json`. History Claude decodes all three back into real paths, then buckets each workspace into one of nine categories: AI/CLAUDE, FLUTTER, SECURITY, RUST, GO, PYTHON, WEB, WORK, OTHER. Each category gets its own hue in the sidebar and click-to-collapse headers, so the workspace list stays scannable even when you have 35 of them.
+Every provider stores sessions under a different layout. Claude Code uses `~/.claude/projects/` with the project path encoded as a folder name like `-Users-you-Code-flutter-myapp`. Codex writes rollouts to `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl` and groups by each session's `cwd`. Gemini writes chats to `~/.gemini/tmp/<project-dir>/chats/session-*.json`. Claude Desktop nests transcripts at `.../local-agent-mode-sessions/<account>/<space>/local_<uuid>/audit.jsonl` with a sidecar `local_<uuid>.json` carrying the title and model. History Claude decodes all of them back into real paths, then buckets each workspace into one of nine categories: AI/CLAUDE, FLUTTER, SECURITY, RUST, GO, PYTHON, WEB, WORK, OTHER. Each category gets its own hue in the sidebar and click-to-collapse headers, so the workspace list stays scannable even when you have 35 of them.
 
 ### Smart folders
 
@@ -224,7 +224,7 @@ Per-project tokens and an estimated cost using the standard pricing tiers. An ho
 
 ### Resume in your terminal
 
-`Resume in <Terminal>` launches the selected session in Ghostty, iTerm, Terminal.app, Alacritty, WezTerm, or kitty. The launcher routes to the right CLI for the session's provider: `claude --resume <uuid>` for Claude, `codex resume <uuid>` for Codex (subcommand, not a flag), `gemini --resume <uuid>` for Gemini. Pick a default terminal in Settings, or override per-session from the action bar dropdown. The launcher uses the right invocation for each terminal (e.g. `ghostty --working-directory=...`, AppleScript for iTerm) and degrades gracefully if a terminal isn't installed.
+`Resume in <Terminal>` launches the selected session in Ghostty, iTerm, Terminal.app, Alacritty, WezTerm, or kitty. The launcher routes to the right CLI for the session's provider: `claude --resume <uuid>` for Claude, `codex resume <uuid>` for Codex (subcommand, not a flag), `gemini --resume <uuid>` for Gemini. Claude Desktop sessions are the exception: nothing on the command line can resume one, so they're read-only and the resume affordances are hidden for them — use `Export .md` or raw-markdown mode to carry a transcript into a new session. Pick a default terminal in Settings, or override per-session from the action bar dropdown. The launcher uses the right invocation for each terminal (e.g. `ghostty --working-directory=...`, AppleScript for iTerm) and degrades gracefully if a terminal isn't installed.
 
 Heads up: when you click "Resume in Ghostty", Ghostty pops a one-time-per-click "Allow Ghostty to execute ..." confirmation. That's a Ghostty security gate ([discussion #10203](https://github.com/ghostty-org/ghostty/discussions/10203)) that can't be turned off in config. The other terminals don't have this prompt.
 
@@ -256,7 +256,7 @@ Press `⌘Y` on any selected session for a 300x480 popover preview of the first 
 
 ## Privacy
 
-History Claude runs entirely on your Mac. The app reads `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.gemini/tmp/` for session data, and writes a single SQLite database to `~/Library/Application Support/HistoryClaude/history-claude.sqlite`. That's it. Transcripts are not uploaded, summarized, embedded, or sent to any external service.
+History Claude runs entirely on your Mac. The app reads `~/.claude/projects/`, `~/.codex/sessions/`, `~/.gemini/tmp/`, and `~/Library/Application Support/Claude/local-agent-mode-sessions/` for session data, and writes a single SQLite database to `~/Library/Application Support/HistoryClaude/history-claude.sqlite`. That's it. Transcripts are not uploaded, summarized, embedded, or sent to any external service.
 
 When you turn iCloud sync on, History Claude writes one file inside your iCloud Drive: `~/Library/Mobile Documents/com~apple~CloudDocs/HistoryClaude/history-claude-sync.json`. That file contains tags, pin flags, archive flags, custom titles, notes, and smart-folder definitions. It does not contain transcripts, message bodies, file paths beyond the workspace name, or any session content. If you want to see exactly what's in there, open the file. It's plain JSON.
 
@@ -332,7 +332,7 @@ If you turned on iCloud sync and want to wipe the cloud copy too, delete `~/Libr
 
 All on your Mac, in a few different places:
 
-- `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.gemini/tmp/` are the source-of-truth transcripts each CLI writes. History Claude reads these but never writes to them.
+- `~/.claude/projects/`, `~/.codex/sessions/`, `~/.gemini/tmp/`, and `~/Library/Application Support/Claude/local-agent-mode-sessions/` are the source-of-truth transcripts each tool writes. History Claude reads these but never writes to them.
 - `~/Library/Application Support/HistoryClaude/history-claude.sqlite` is History Claude's own index, plus your pins, tags, notes, custom titles, and smart-folder definitions. Every record carries which provider it belongs to so the three datasets stay separate.
 - `~/Library/Mobile Documents/com~apple~CloudDocs/HistoryClaude/history-claude-sync.json` is only present if you turned on iCloud sync. Metadata only — no transcripts.
 

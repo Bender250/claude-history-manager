@@ -169,6 +169,7 @@ struct MenubarProviderTiles: View {
             ClaudeProvider(),
             CodexProvider(),
             GeminiProvider(),
+            ClaudeDesktopProvider(),
         ])
         let repo = repository as? SessionsRepository
         Task { @MainActor in

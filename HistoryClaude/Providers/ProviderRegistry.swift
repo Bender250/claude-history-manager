@@ -10,7 +10,7 @@ import Foundation
 /// could re-detect on app foreground, but for v0.2 the user is expected
 /// to relaunch HistoryClaude after installing a new CLI.
 public actor ProviderRegistry {
-    private let canonicalOrder: [ProviderID] = [.claude, .codex, .gemini]
+    private let canonicalOrder: [ProviderID] = [.claude, .claudeDesktop, .codex, .gemini]
     private let byID: [ProviderID: any Provider]
 
     /// Build a registry from a candidate list. Only providers reporting

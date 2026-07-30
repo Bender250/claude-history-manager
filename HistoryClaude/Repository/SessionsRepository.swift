@@ -2385,6 +2385,10 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
             let flags: Set<String>
             let fileSize: Int
             let fileMTime: Date
+            /// Absolute transcript path, for providers whose on-disk
+            /// location isn't reconstructible from (workspace, sessionID).
+            /// Nil for Claude Code, which always resolves via projectsRoot.
+            let filePath: String?
         }
 
         var pending: [Pending] = []
@@ -2406,7 +2410,8 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
                         metadata: metadata,
                         flags: flags,
                         fileSize: size,
-                        fileMTime: mtime
+                        fileMTime: mtime,
+                        filePath: nil
                     ))
 
                 case .codex:
@@ -2423,7 +2428,8 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
                         metadata: sessionMeta,
                         flags: flags,
                         fileSize: size,
-                        fileMTime: mtime
+                        fileMTime: mtime,
+                        filePath: url.path
                     ))
 
                 case .gemini:
@@ -2451,12 +2457,42 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
                             metadata: sessionMeta,
                             flags: flags,
                             fileSize: size,
-                            fileMTime: mtime
+                            fileMTime: mtime,
+                            filePath: url.path
                         ))
                     } catch GeminiParser.ParseError.filtered(_) {
                         // Subagent / system-only sessions are intentionally skipped.
                         continue
                     }
+
+                case .claudeDesktop:
+                    // FSEvents fires for every file under a session dir
+                    // (outputs/, uploads/, …); only `audit.jsonl` inside a
+                    // `local_<uuid>/` folder is a transcript.
+                    guard url.lastPathComponent == "audit.jsonl",
+                          ClaudeDesktopParser.sessionUUID(forAuditFile: url) != nil else {
+                        continue
+                    }
+                    let sidecar = ClaudeDesktopParser.readSidecar(forAuditFile: url)
+                    // Must match the bootstrap's bucketing exactly, or live
+                    // updates land on a workspaces row the list never shows.
+                    let wsID = Self.claudeDesktopWorkspaceID(
+                        folder: sidecar?.userSelectedFolders.first,
+                        spaceID: url.deletingLastPathComponent()
+                            .deletingLastPathComponent().lastPathComponent
+                    )
+                    let attrs = (try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]))
+                    let (sessionMeta, flags) = try ClaudeDesktopParser()
+                        .parse(url: url, workspaceID: wsID)
+                    pending.append(Pending(
+                        sessionID: sessionMeta.sessionID,
+                        workspaceID: wsID,
+                        metadata: sessionMeta,
+                        flags: flags,
+                        fileSize: attrs?.fileSize ?? 0,
+                        fileMTime: attrs?.contentModificationDate ?? Date(),
+                        filePath: url.path
+                    ))
                 }
             } catch {
                 _bootstrapErrors.append(
@@ -2550,13 +2586,13 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
                         p.metadata.outputTokens,
                         p.metadata.model,
                         providerKey,
-                        // FSEvents-driven incremental reindex only fires on
-                        // Claude's `~/.claude/projects` tree today; Claude
-                        // sessions resolve via the canonical projectsRoot
-                        // path so we leave file_path NULL here. The COALESCE
-                        // in the UPSERT preserves any value set by an earlier
-                        // bootstrap pass.
-                        nil as String?,
+                        // Claude sessions resolve via the canonical
+                        // projectsRoot path and carry nil here; the other
+                        // providers record the absolute path so a session
+                        // first seen by the watcher (never bootstrapped) is
+                        // still openable. The COALESCE in the UPSERT keeps
+                        // any earlier value when this is nil.
+                        p.filePath,
                     ])
 
                 // Replace flags for this session. DELETE+INSERT keeps us

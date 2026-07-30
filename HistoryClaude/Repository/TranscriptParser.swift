@@ -23,9 +23,20 @@ public struct TranscriptParser {
     /// empty transcript (not an error) for empty files so the view can
     /// still render a frame. Throws only on real IO failures or if the
     /// filename doesn't contain a UUID.
-    public func parse(url: URL, workspaceID: String) throws -> Transcript {
-        let stem = url.deletingPathExtension().lastPathComponent
-        let sessionID = try SessionID(string: stem)
+    /// `sessionIDOverride` covers Claude Desktop, whose transcripts are
+    /// all named `audit.jsonl` — the UUID lives on the parent directory.
+    public func parse(
+        url: URL,
+        workspaceID: String,
+        sessionIDOverride: SessionID? = nil
+    ) throws -> Transcript {
+        let sessionID: SessionID
+        if let sessionIDOverride {
+            sessionID = sessionIDOverride
+        } else {
+            let stem = url.deletingPathExtension().lastPathComponent
+            sessionID = try SessionID(string: stem)
+        }
 
         let now = Date()
         let raw: String
@@ -112,7 +123,9 @@ private struct Walker {
     mutating func ingest(_ obj: [String: Any]) {
         guard let type = obj["type"] as? String else { return }
 
-        let ts = (obj["timestamp"] as? String).flatMap {
+        // `_audit_timestamp` is Claude Desktop's envelope spelling; it's
+        // on every line there, whereas `timestamp` is sporadic.
+        let ts = ((obj["timestamp"] as? String) ?? (obj["_audit_timestamp"] as? String)).flatMap {
             iso.date(from: $0) ?? isoNoFrac.date(from: $0)
         }
         if createdAt == nil, let ts { createdAt = ts }

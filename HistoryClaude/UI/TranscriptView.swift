@@ -293,7 +293,11 @@ private struct ActionBar: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            primaryButton
+            // Claude Desktop sessions are read-only — no CLI can resume
+            // them, so the button would be a dead end.
+            if state.activeProvider.supportsResume {
+                primaryButton
+            }
             if let editor = editorPref.editor {
                 editorButton(editor: editor)
             }

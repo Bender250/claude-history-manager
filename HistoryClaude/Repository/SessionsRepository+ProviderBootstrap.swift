@@ -326,6 +326,203 @@ public extension SessionsRepository {
         return "codex:\(cwd)"
     }
 
+    // MARK: - Claude Desktop
+
+    /// Walks Claude Desktop's `local-agent-mode-sessions/` tree and
+    /// indexes every `local_<uuid>/audit.jsonl` under
+    /// `provider = 'claudeDesktop'`.
+    ///
+    /// Workspace bucketing is the one genuinely awkward part. Desktop
+    /// sessions have no working directory in the Claude Code sense — the
+    /// sidecar's `cwd` points at the session's own sandboxed `outputs/`
+    /// folder, which is unique per session and therefore useless for
+    /// grouping. Two rules, in order:
+    ///
+    ///  1. If the user granted the session access to folders
+    ///     (`userSelectedFolders`), bucket by the first one — that's the
+    ///     project the session was actually about.
+    ///  2. Otherwise bucket by the Desktop *space* the session lives in,
+    ///     which at least separates unrelated bodies of work.
+    func bootstrapClaudeDesktop(
+        sessionsRoot: URL = ClaudeDesktopProvider.sessionsRoot(),
+        progress: (@Sendable (_ fraction: Double, _ message: String) -> Void)? = nil
+    ) async throws {
+        await setActiveProvider(.claudeDesktop)
+        progress?(0.0, "Scanning \(sessionsRoot.path)")
+
+        let discovered = ClaudeDesktopProvider.enumerateSessions(under: sessionsRoot)
+        AppLogger.parser.info("Claude Desktop walk: found=\(discovered.count) sessions")
+        progress?(0.1, "Parsing \(discovered.count) Claude Desktop sessions")
+
+        let buckets = Self.bucketClaudeDesktop(
+            discovered,
+            progress: { done, total in
+                guard total > 0, done % 10 == 0 || done == total else { return }
+                progress?(0.1 + (Double(done) / Double(total)) * 0.7,
+                          "Parsed \(done) of \(total)")
+            }
+        )
+
+        let workspaceData = Self.claudeDesktopWorkspaceData(buckets)
+        progress?(0.85, "Writing \(workspaceData.count) workspaces")
+        try await databaseForTests.write { db in
+            for wd in workspaceData {
+                try Self.writeWorkspace(wd, provider: .claudeDesktop, into: db)
+            }
+        }
+        try await databaseForTests.write { db in
+            for bucket in buckets.values {
+                for entry in bucket.entries {
+                    Self.writeFtsRowFromClaudeDesktop(
+                        entry: entry, workspaceID: bucket.workspaceID, db: db
+                    )
+                }
+            }
+        }
+
+        try await ensureBuiltInSmartFolders()
+        progress?(1.0, "Indexed \(workspaceData.count) Claude Desktop workspaces")
+    }
+
+    /// Catch-up reindex for Claude Desktop — same walk as the bootstrap,
+    /// skipping transcripts already recorded in `sessions_index.file_path`.
+    /// Idempotent.
+    func catchupClaudeDesktop(
+        sessionsRoot: URL = ClaudeDesktopProvider.sessionsRoot()
+    ) async throws {
+        let known = await knownFilePaths(provider: .claudeDesktop)
+        let fresh = ClaudeDesktopProvider.enumerateSessions(under: sessionsRoot)
+            .filter { !known.contains($0.auditURL.path) }
+        guard !fresh.isEmpty else {
+            AppLogger.parser.info("Claude Desktop catch-up: no new sessions")
+            return
+        }
+        AppLogger.parser.info("Claude Desktop catch-up: \(fresh.count) new sessions to index")
+
+        let buckets = Self.bucketClaudeDesktop(fresh, progress: nil)
+        let workspaceData = Self.claudeDesktopWorkspaceData(buckets)
+        try await databaseForTests.write { db in
+            for wd in workspaceData {
+                try Self.writeWorkspace(wd, provider: .claudeDesktop, into: db)
+            }
+        }
+        try await databaseForTests.write { db in
+            for bucket in buckets.values {
+                for entry in bucket.entries {
+                    Self.writeFtsRowFromClaudeDesktop(
+                        entry: entry, workspaceID: bucket.workspaceID, db: db
+                    )
+                }
+            }
+        }
+    }
+
+    /// Shared parse + group pass for the bootstrap and catch-up paths.
+    internal struct ClaudeDesktopBucket {
+        let workspaceID: String
+        /// The user-selected folder this bucket represents, if any.
+        let folder: String?
+        /// Desktop space UUID, used for the display name when `folder` is nil.
+        let spaceID: String
+        var entries: [ParsedSession] = []
+    }
+
+    internal static func bucketClaudeDesktop(
+        _ discovered: [ClaudeDesktopProvider.DiscoveredSession],
+        progress: ((_ done: Int, _ total: Int) -> Void)?
+    ) -> [String: ClaudeDesktopBucket] {
+        let parser = ClaudeDesktopParser()
+        var buckets: [String: ClaudeDesktopBucket] = [:]
+        var errored = 0
+
+        for (idx, session) in discovered.enumerated() {
+            let sidecar = session.sidecarURL.flatMap { ClaudeDesktopParser.readSidecar(at: $0) }
+            let folder = sidecar?.userSelectedFolders.first
+            let workspaceID = claudeDesktopWorkspaceID(folder: folder, spaceID: session.spaceID)
+
+            if buckets[workspaceID] == nil {
+                buckets[workspaceID] = ClaudeDesktopBucket(
+                    workspaceID: workspaceID, folder: folder, spaceID: session.spaceID
+                )
+            }
+
+            let attrs = try? session.auditURL.resourceValues(
+                forKeys: [.fileSizeKey, .contentModificationDateKey]
+            )
+            do {
+                let (meta, flags) = try parser.parse(
+                    url: session.auditURL, workspaceID: workspaceID
+                )
+                buckets[workspaceID]?.entries.append(
+                    ParsedSession(
+                        metadata: meta,
+                        size: attrs?.fileSize ?? 0,
+                        mtime: attrs?.contentModificationDate ?? Date(),
+                        flags: flags,
+                        // Every transcript is named `audit.jsonl`, so the
+                        // path is not reconstructible from (workspace,
+                        // sessionID) — record it for TranscriptRepository.
+                        filePath: session.auditURL.path
+                    )
+                )
+            } catch {
+                errored += 1
+                AppLogger.parser.error(
+                    "Claude Desktop parse error for \(session.sessionUUID): \(error.localizedDescription)"
+                )
+            }
+            progress?(idx + 1, discovered.count)
+        }
+
+        AppLogger.parser.info(
+            "Claude Desktop parse pass: parsed=\(discovered.count - errored), errored=\(errored)"
+        )
+        return buckets
+    }
+
+    internal static func claudeDesktopWorkspaceData(
+        _ buckets: [String: ClaudeDesktopBucket]
+    ) -> [WorkspaceData] {
+        let now = Date()
+        // Only disambiguate space-bucketed workspaces when there's more
+        // than one — the common case is a single space, where a bare
+        // "Claude Desktop" reads better than "Claude Desktop (a5d90d4a)".
+        let spaceBuckets = buckets.values.filter { $0.folder == nil }
+        let multipleSpaces = spaceBuckets.count > 1
+
+        return buckets.values.map { bucket in
+            let displayName: String
+            if let folder = bucket.folder {
+                let leaf = URL(fileURLWithPath: folder).lastPathComponent
+                displayName = leaf.isEmpty ? folder : leaf
+            } else if multipleSpaces {
+                displayName = "Claude Desktop (\(bucket.spaceID.prefix(8)))"
+            } else {
+                displayName = "Claude Desktop"
+            }
+            return WorkspaceData(
+                id: bucket.workspaceID,
+                decoded: WorkspacePathDecoder.Result(
+                    decodedPath: bucket.folder ?? "Claude Desktop",
+                    group: Self.groupForCwd(bucket.folder),
+                    displayName: displayName
+                ),
+                indexedAt: now,
+                sessions: bucket.entries,
+                metadata: JsonlParser.WorkspaceMetadata(
+                    cwd: bucket.folder, gitBranch: nil, version: nil
+                )
+            )
+        }
+    }
+
+    /// Namespaced like the Codex / Gemini workspace IDs so
+    /// `cleanupCorruptProviderRows`-style prefix invariants hold.
+    internal static func claudeDesktopWorkspaceID(folder: String?, spaceID: String) -> String {
+        if let folder, !folder.isEmpty { return "claudeDesktop:\(folder)" }
+        return "claudeDesktop:space:\(spaceID)"
+    }
+
     // MARK: - Gemini
 
     /// Walks `~/.gemini/tmp/<project_dir>/chats/`, parses each session
@@ -627,6 +824,33 @@ public extension SessionsRepository {
             url: url,
             sessionID: entry.metadata.sessionID,
             workspaceID: workspaceID
+        )).map { ftsBody(from: $0) } ?? ""
+        try? db.execute(
+            sql: "INSERT INTO transcript_fts (session_id, workspace_id, title, body) VALUES (?, ?, ?, ?)",
+            arguments: [
+                entry.metadata.sessionID.description,
+                workspaceID,
+                entry.metadata.title,
+                body
+            ]
+        )
+    }
+
+    /// Claude Desktop's transcripts are Claude Code's format, so the
+    /// plain `TranscriptParser` produces the FTS body — the only
+    /// difference from the Claude path is that the file is addressed by
+    /// its recorded absolute path rather than reconstructed.
+    internal static func writeFtsRowFromClaudeDesktop(
+        entry: ParsedSession,
+        workspaceID: String,
+        db: GRDB.Database
+    ) {
+        guard let path = entry.filePath else { return }
+        let parser = TranscriptParser()
+        let body = (try? parser.parse(
+            url: URL(fileURLWithPath: path),
+            workspaceID: workspaceID,
+            sessionIDOverride: entry.metadata.sessionID
         )).map { ftsBody(from: $0) } ?? ""
         try? db.execute(
             sql: "INSERT INTO transcript_fts (session_id, workspace_id, title, body) VALUES (?, ?, ?, ?)",

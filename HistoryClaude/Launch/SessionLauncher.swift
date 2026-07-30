@@ -158,6 +158,14 @@ public struct SessionLauncher: SessionLauncherProtocol {
         case .gemini:
             return GeminiResumeBuilder(loginShell: loginShell)
                 .build(terminal: terminal, sessionID: sessionID, cwd: cwd)
+        case .claudeDesktop:
+            // No CLI can resume one of these; the UI hides the resume
+            // affordances (`ProviderID.supportsResume`), so this is only
+            // reachable if a caller ignores that flag. Bringing Claude
+            // Desktop forward is the closest honest fallback.
+            return ClaudeDesktopProvider().resumeCommand(
+                sessionID: sessionID, cwd: cwd, terminal: terminal, loginShell: loginShell
+            )
         }
     }
 

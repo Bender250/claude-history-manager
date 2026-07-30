@@ -19,6 +19,7 @@ public final class MultiProviderWatcherHub {
     private var claudeCoord: WatcherCoordinator?
     private var codexWatcher: CodexWatcher?
     private var geminiWatcher: GeminiWatcher?
+    private var desktopWatcher: ClaudeDesktopWatcher?
     private var active: ProviderID?
     private var pendingTask: Task<Void, Never>?
     private var pendingTarget: ProviderID?
@@ -55,6 +56,9 @@ public final class MultiProviderWatcherHub {
         }
         if available.contains(.gemini) {
             self.geminiWatcher = GeminiWatcher()
+        }
+        if available.contains(.claudeDesktop) {
+            self.desktopWatcher = ClaudeDesktopWatcher()
         }
     }
 
@@ -131,6 +135,19 @@ public final class MultiProviderWatcherHub {
                 } catch {}
                 await self.onFileChange?()
             }
+        case .claudeDesktop:
+            await desktopWatcher?.start { [weak self] change in
+                guard let self else { return }
+                do {
+                    try await self.repository.incrementalReindex(
+                        paths: change.changedJsonl,
+                        workspaces: change.changedWorkspaces,
+                        removedPaths: change.removedJsonl,
+                        provider: .claudeDesktop
+                    )
+                } catch {}
+                await self.onFileChange?()
+            }
         }
         await onWatcherStart?(id)
     }
@@ -143,6 +160,8 @@ public final class MultiProviderWatcherHub {
             await codexWatcher?.stop()
         case .gemini:
             await geminiWatcher?.stop()
+        case .claudeDesktop:
+            await desktopWatcher?.stop()
         }
         await onWatcherStop?(id)
     }

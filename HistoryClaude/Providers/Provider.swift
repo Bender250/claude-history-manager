@@ -7,15 +7,20 @@ public enum ProviderID: String, CaseIterable, Sendable, Codable, Hashable {
     case claude
     case codex
     case gemini
+    /// Claude Desktop's local agent mode (a.k.a. Cowork) sessions. Same
+    /// message format as Claude Code, different storage layout, and
+    /// read-only — there's no CLI to hand a session back to.
+    case claudeDesktop
 
     /// Human-facing label used by the segmented control and menubar
     /// tile grid. Kept on the enum so neither view has to repeat the
     /// switch (and so a future renaming lands in one place).
     public var displayName: String {
         switch self {
-        case .claude: return "Claude"
-        case .codex:  return "Codex"
-        case .gemini: return "Gemini"
+        case .claude:        return "Claude"
+        case .codex:         return "Codex"
+        case .gemini:        return "Gemini"
+        case .claudeDesktop: return "Claude Desktop"
         }
     }
 
@@ -35,9 +40,12 @@ public enum ProviderID: String, CaseIterable, Sendable, Codable, Hashable {
     /// without any asset-catalog setup.
     public var iconSymbol: String {
         switch self {
-        case .claude: return "sparkle"
-        case .codex:  return "hexagon"
-        case .gemini: return "diamond"
+        case .claude:        return "sparkle"
+        case .codex:         return "hexagon"
+        case .gemini:        return "diamond"
+        // Same vendor as `.claude`, so the same sparkle — the two tiles
+        // are told apart by their labels, not their glyphs.
+        case .claudeDesktop: return "sparkle"
         }
     }
 
@@ -51,9 +59,10 @@ public enum ProviderID: String, CaseIterable, Sendable, Codable, Hashable {
     /// resources don't expose Asset-Catalog `Image(named:)`).
     public var iconAssetName: String {
         switch self {
-        case .claude: return "claude"
-        case .codex:  return "codex"
-        case .gemini: return "gemini"
+        case .claude:        return "claude"
+        case .codex:         return "codex"
+        case .gemini:        return "gemini"
+        case .claudeDesktop: return "claude"
         }
     }
 }
@@ -91,6 +100,13 @@ public protocol Provider: Sendable {
     /// Returns the parser bound to this provider's on-disk format.
     func makeParser() -> any SessionParser
 
+    /// False for providers whose sessions can only be read, never handed
+    /// back to a CLI — Claude Desktop's agent-mode sessions have no
+    /// command-line entry point. The UI hides its resume affordances for
+    /// these; `resumeCommand` is still required by the protocol but is
+    /// never dispatched.
+    var supportsResume: Bool { get }
+
     /// Build a resume command. The existing `SessionLauncher` dispatches
     /// the returned `LaunchCommand`; only the per-provider command tail
     /// (`claude --resume <id>` vs `codex resume <id>` vs
@@ -107,6 +123,15 @@ public extension Provider {
     /// Convenience: instance-side access to the static id, useful when
     /// holding `any Provider` and you don't have the concrete type to hand.
     var id: ProviderID { type(of: self).id }
+
+    /// Every CLI-backed provider can resume; only Claude Desktop opts out.
+    var supportsResume: Bool { true }
+}
+
+public extension ProviderID {
+    /// Mirror of `Provider.supportsResume` reachable from views, which
+    /// hold a `ProviderID` rather than a live provider instance.
+    var supportsResume: Bool { self != .claudeDesktop }
 }
 
 /// Parses one session file into the canonical `SessionMetadata` shape

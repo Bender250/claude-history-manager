@@ -230,6 +230,7 @@ struct HistoryClaudeApp: App {
                 ClaudeProvider(),
                 CodexProvider(),
                 GeminiProvider(),
+                ClaudeDesktopProvider(),
             ])
             let availableIDs = await registry.availableIDs()
             hub.build(available: availableIDs)

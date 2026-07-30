@@ -172,6 +172,7 @@ struct AppView: View {
                     ClaudeProvider(),
                     CodexProvider(),
                     GeminiProvider(),
+                    ClaudeDesktopProvider(),
                 ])
                 state.availableProviders = await registry.availableIDs()
                 state.loadActiveProviderFromDefaults()
@@ -338,6 +339,8 @@ struct AppView: View {
                             try? await repo.bootstrapCodex(progress: progress)
                         case .gemini:
                             try? await repo.bootstrapGemini(progress: progress)
+                        case .claudeDesktop:
+                            try? await repo.bootstrapClaudeDesktop(progress: progress)
                         }
                         if isStale(myGeneration) { return }
                         state.bootstrappedProviders.insert(currentProvider)
@@ -352,6 +355,8 @@ struct AppView: View {
                             try? await repo.catchupCodex()
                         case .gemini:
                             try? await repo.catchupGemini()
+                        case .claudeDesktop:
+                            try? await repo.catchupClaudeDesktop()
                         case .claude:
                             break
                         }

@@ -20,6 +20,7 @@ struct FullDiskAccessEmptyState: View {
         case .claude: return "History Claude can't see your sessions"
         case .codex:  return "No Codex sessions found"
         case .gemini: return "No Gemini sessions found"
+        case .claudeDesktop: return "No Claude Desktop sessions found"
         }
     }
 
@@ -43,14 +44,23 @@ struct FullDiskAccessEmptyState: View {
                 ~/.gemini/tmp/. Install Gemini CLI and run a session, \
                 then click Reload.
                 """
+        case .claudeDesktop:
+            return """
+                History Claude didn't find any Claude Desktop agent-mode \
+                sessions under ~/Library/Application Support/Claude/. \
+                Reading another app's Application Support folder needs Full \
+                Disk Access, so grant it in System Settings if you do have \
+                Desktop sessions, then click Reload.
+                """
         }
     }
 
-    /// Only Claude's empty state is realistically caused by FDA — for
-    /// Codex / Gemini the path is user-readable by default, so the
-    /// Privacy Settings shortcut would just be misleading.
+    /// Claude Code and Claude Desktop are the FDA-gated pair —
+    /// `~/.claude/projects/` and another app's Application Support
+    /// container both need it. For Codex / Gemini the path is
+    /// user-readable by default, so the shortcut would just mislead.
     private var showsPrivacyButton: Bool {
-        provider == .claude
+        provider == .claude || provider == .claudeDesktop
     }
 
     var body: some View {

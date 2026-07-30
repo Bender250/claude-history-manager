@@ -107,9 +107,22 @@ public struct JsonlParser: Sendable {
 
     /// Like `parse(url:workspaceID:)` but additionally returns the set of
     /// session flags derived from the jsonl contents (for `session_flags`).
-    public func parseWithFlags(url: URL, workspaceID: String) throws -> (SessionMetadata, Set<String>) {
-        let stem = url.deletingPathExtension().lastPathComponent
-        let sessionID = try SessionID(string: stem)
+    ///
+    /// `sessionIDOverride` exists for providers whose transcript filename
+    /// isn't the session UUID — Claude Desktop names every transcript
+    /// `audit.jsonl` and puts the UUID on the enclosing directory.
+    public func parseWithFlags(
+        url: URL,
+        workspaceID: String,
+        sessionIDOverride: SessionID? = nil
+    ) throws -> (SessionMetadata, Set<String>) {
+        let sessionID: SessionID
+        if let sessionIDOverride {
+            sessionID = sessionIDOverride
+        } else {
+            let stem = url.deletingPathExtension().lastPathComponent
+            sessionID = try SessionID(string: stem)
+        }
 
         let raw = try String(contentsOf: url, encoding: .utf8)
         let lines = raw.split(whereSeparator: \.isNewline)
@@ -137,7 +150,10 @@ public struct JsonlParser: Sendable {
             }
             guard let type = obj["type"] as? String else { continue }
 
-            let ts = (obj["timestamp"] as? String).flatMap {
+            // Claude Desktop's agent-mode transcripts stamp every line
+            // `_audit_timestamp` and carry `timestamp` on only a handful,
+            // so fall back to it. Same ISO-8601 format either way.
+            let ts = ((obj["timestamp"] as? String) ?? (obj["_audit_timestamp"] as? String)).flatMap {
                 iso.date(from: $0) ?? isoNoFrac.date(from: $0)
             }
             if firstTimestamp == nil, let ts { firstTimestamp = ts }
