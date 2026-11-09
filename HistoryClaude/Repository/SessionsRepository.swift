@@ -1831,8 +1831,9 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
         }
     }
 
-    /// Seeds the four built-in smart folders if they don't already exist
-    /// (matched by name) for the active provider. Safe to call on every
+    /// Seeds the built-in smart folders if they don't already exist
+    /// (matched by name) for the active provider, and re-applies the
+    /// canonical sort order to built-ins that do. Safe to call on every
     /// bootstrap; idempotent and provider-scoped, so each provider's
     /// first bootstrap gets its own copy of the built-ins.
     internal func ensureBuiltInSmartFolders() async throws {
@@ -1849,6 +1850,11 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
                         INSERT INTO smart_folders (name, query_json, sort_order, is_builtin, provider)
                         VALUES (?, ?, ?, 1, ?)
                         """, arguments: [builtin.name, json, builtin.sortOrder, providerKey])
+                } else {
+                    try db.execute(sql: """
+                        UPDATE smart_folders SET sort_order = ?
+                        WHERE name = ? COLLATE NOCASE AND provider = ? AND is_builtin = 1
+                        """, arguments: [builtin.sortOrder, builtin.name, providerKey])
                 }
             }
         }
@@ -1908,6 +1914,12 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
         case .thisWeek:
             let cutoff = Date().addingTimeInterval(-7 * 24 * 3600)
             return try await sessionsByDateRange(since: cutoff, limit: limit)
+        case .thisMonth:
+            return try await sessionsByDateRange(since: Self.startOfCurrentMonth(), limit: limit)
+        case .allTime:
+            // No cap: this folder exists to show the whole history.
+            // SQLite treats a negative LIMIT as "no limit".
+            return try await sessionsByDateRange(since: .distantPast, limit: -1)
         case .lastNDays(let n):
             let cutoff = Date().addingTimeInterval(-Double(max(0, n)) * 24 * 3600)
             return try await sessionsByDateRange(since: cutoff, limit: limit)
@@ -1975,6 +1987,10 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
             return try await countSessionsSince(cutoff)
         case .thisWeek:
             return try await countSessionsSince(Date().addingTimeInterval(-7 * 24 * 3600))
+        case .thisMonth:
+            return try await countSessionsSince(Self.startOfCurrentMonth())
+        case .allTime:
+            return try await countSessionsSince(.distantPast)
         case .lastNDays(let n):
             return try await countSessionsSince(Date().addingTimeInterval(-Double(max(0, n)) * 24 * 3600))
         case .usedGitPush:
@@ -2039,6 +2055,13 @@ public actor SessionsRepository: SessionsRepositoryProtocol {
                   AND COALESCE(u.is_archived, 0) = 0
                 """, arguments: [providerKey, flag]) ?? 0
         }
+    }
+
+    /// Midnight on the first day of the current calendar month (local time).
+    private static func startOfCurrentMonth(now: Date = Date()) -> Date {
+        let cal = Calendar.current
+        return cal.date(from: cal.dateComponents([.year, .month], from: now))
+            ?? cal.startOfDay(for: now)
     }
 
     private func sessionsByDateRange(since cutoff: Date,

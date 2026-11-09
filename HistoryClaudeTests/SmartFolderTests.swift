@@ -59,9 +59,10 @@ final class SmartFolderTests: XCTestCase {
         XCTAssertEqual(decoded, .custom(raw: ""))
     }
 
-    func test_builtIns_hasFourEntries_withExpectedNames() {
+    func test_builtIns_hasExpectedNames() {
         let names = SmartFolder.builtIns.map(\.name)
-        XCTAssertEqual(names, ["Today", "This week", "Used `git push`", "Errored sessions"])
+        XCTAssertEqual(names, ["Today", "This week", "This month", "All time",
+                               "Used `git push`", "Errored sessions"])
     }
 
     func test_builtIns_sortOrderIsMonotonic() {

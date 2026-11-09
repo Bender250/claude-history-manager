@@ -37,6 +37,10 @@ public struct SmartFolder: Equatable, Sendable, Identifiable, Codable {
 public enum SmartFolderQuery: Equatable, Sendable, Codable {
     case today
     case thisWeek
+    /// Since the first day of the current calendar month.
+    case thisMonth
+    /// Every indexed session, no date bound and no row cap.
+    case allTime
     case lastNDays(Int)
     case usedGitPush
     case erroredSessions
@@ -57,6 +61,8 @@ public enum SmartFolderQuery: Equatable, Sendable, Codable {
     private enum Kind: String, Codable {
         case today
         case thisWeek
+        case thisMonth
+        case allTime
         case lastNDays
         case usedGitPush
         case erroredSessions
@@ -72,6 +78,10 @@ public enum SmartFolderQuery: Equatable, Sendable, Codable {
             try c.encode(Kind.today, forKey: .kind)
         case .thisWeek:
             try c.encode(Kind.thisWeek, forKey: .kind)
+        case .thisMonth:
+            try c.encode(Kind.thisMonth, forKey: .kind)
+        case .allTime:
+            try c.encode(Kind.allTime, forKey: .kind)
         case .lastNDays(let n):
             try c.encode(Kind.lastNDays, forKey: .kind)
             try c.encode(n, forKey: .days)
@@ -105,6 +115,8 @@ public enum SmartFolderQuery: Equatable, Sendable, Codable {
         switch kind {
         case .today:             self = .today
         case .thisWeek:          self = .thisWeek
+        case .thisMonth:         self = .thisMonth
+        case .allTime:           self = .allTime
         case .lastNDays:         self = .lastNDays((try? c.decode(Int.self, forKey: .days)) ?? 7)
         case .usedGitPush:       self = .usedGitPush
         case .erroredSessions:   self = .erroredSessions
@@ -257,7 +269,7 @@ private struct SmartFolderSearchEnvelope: Codable {
 // MARK: - Built-ins
 
 public extension SmartFolder {
-    /// Descriptor for one of the four always-present smart folders. `id` is
+    /// Descriptor for one of the always-present smart folders. `id` is
     /// assigned at INSERT time so built-ins can share the same table as
     /// user-authored folders.
     struct BuiltIn: Sendable, Equatable {
@@ -272,12 +284,15 @@ public extension SmartFolder {
         }
     }
 
-    /// The four smart folders seeded on first launch. Order matters; the
-    /// sidebar renders them in `sortOrder` ascending.
+    /// The smart folders seeded per provider. Order matters; the sidebar
+    /// renders them in `sortOrder` ascending, and seeding re-applies these
+    /// sort orders to existing built-in rows so new entries slot in place.
     static let builtIns: [BuiltIn] = [
         BuiltIn(name: "Today",             query: .today,            sortOrder: 0),
         BuiltIn(name: "This week",         query: .thisWeek,         sortOrder: 1),
-        BuiltIn(name: "Used `git push`",   query: .usedGitPush,      sortOrder: 2),
-        BuiltIn(name: "Errored sessions",  query: .erroredSessions,  sortOrder: 3),
+        BuiltIn(name: "This month",        query: .thisMonth,        sortOrder: 2),
+        BuiltIn(name: "All time",          query: .allTime,          sortOrder: 3),
+        BuiltIn(name: "Used `git push`",   query: .usedGitPush,      sortOrder: 4),
+        BuiltIn(name: "Errored sessions",  query: .erroredSessions,  sortOrder: 5),
     ]
 }
