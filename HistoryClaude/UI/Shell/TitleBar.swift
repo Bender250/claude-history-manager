@@ -10,6 +10,8 @@ import SwiftUI
 
 struct ShellTitleBar: View {
     @Bindable var state: AppState
+    /// Re-scan the active provider's session folders (reload button, ⌘R).
+    var onRescan: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 12) {
@@ -42,6 +44,8 @@ struct ShellTitleBar: View {
                 .foregroundStyle(Theme.Color.textFaint)
                 .lineLimit(1)
                 .fixedSize()
+
+            rescanButton
         }
         .padding(.horizontal, 14)
         .frame(height: 38)
@@ -57,6 +61,27 @@ struct ShellTitleBar: View {
                     .opacity(0)
             }
         )
+    }
+
+    private var rescanButton: some View {
+        Button(action: onRescan) {
+            Group {
+                if state.isRescanning {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .medium))
+                }
+            }
+            .frame(width: 22, height: 20)
+            .foregroundStyle(Theme.Color.textMuted)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut("r", modifiers: .command)
+        .disabled(state.isRescanning || state.isBootstrapping)
+        .help("Rescan \(state.activeProvider.displayName) sessions (⌘R)")
     }
 
     private var tabSwitcher: some View {
@@ -111,6 +136,7 @@ struct ShellTitleBar: View {
     }
 
     private var indexedFragment: String {
+        if state.isRescanning { return "rescanning…" }
         guard let s = state.indexedSecondsAgo else { return "indexing…" }
         if s < 60      { return "indexed \(s)s ago" }
         else if s < 3600 { return "indexed \(s / 60)m ago" }

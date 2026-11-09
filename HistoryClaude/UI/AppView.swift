@@ -306,6 +306,7 @@ struct AppView: View {
             // into a state.switchTo so the main window's onChange
             // handler reloads through the same code path the segmented
             // control uses.
+            guard !state.isRescanning else { return }
             guard let raw = note.userInfo?["providerID"] as? String,
                   let id = ProviderID(rawValue: raw) else { return }
             state.switchTo(id)
@@ -553,7 +554,7 @@ struct AppView: View {
     /// toolbar item backgrounds.
     private var mainBody: some View {
         VStack(spacing: 0) {
-            ShellTitleBar(state: state)
+            ShellTitleBar(state: state, onRescan: { Task { await rescanActiveProvider() } })
             hairline
             SearchBar()
             if case .indexing(let p) = state.searchState {
@@ -594,6 +595,70 @@ struct AppView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// Title-bar reload button / ⌘R. Re-walks the active provider's
+    /// session folders without restarting the app: picks up new and
+    /// changed files and reaps rows whose files were deleted. The window
+    /// stays usable; the current workspace stays selected when it still
+    /// exists after the scan.
+    @MainActor
+    private func rescanActiveProvider() async {
+        guard !state.isRescanning, !state.isBootstrapping else { return }
+        guard let repo = repository as? SessionsRepository else { return }
+        let provider = state.activeProvider
+        state.isRescanning = true
+        defer { state.isRescanning = false }
+
+        do {
+            switch provider {
+            case .claude:
+                try await repo.bootstrap(rootURL: projectsRoot, progress: nil)
+            case .codex:
+                try await repo.bootstrapCodex()
+            case .gemini:
+                try await repo.bootstrapGemini()
+            case .claudeDesktop:
+                try await repo.bootstrapClaudeDesktop()
+            }
+            // The provider bootstraps set the repo scope themselves; make
+            // sure it still matches the UI selection.
+            await repo.setActiveProvider(provider)
+
+            let previousWorkspaceID = state.selectedWorkspace?.id
+            let previousSession = state.selectedSession
+            state.workspaces = try await repository.allWorkspaces()
+            state.lastIndexedAt = Date()
+
+            if let ws = state.workspaces.first(where: { $0.id == previousWorkspaceID }) {
+                // Keep the user's place: refresh the list in place.
+                state.selectedWorkspace = ws
+                await reloadCurrentSessionList()
+                if let prev = previousSession,
+                   let fresh = state.sessionsForSelected.first(where: { $0.id == prev.id }) {
+                    state.selectedSession = fresh
+                }
+            } else if let first = state.workspaces.first {
+                state.select(workspace: first)
+                await reloadCurrentSessionList()
+            } else {
+                state.sessionsForSelected = []
+                state.selectedWorkspace = nil
+                state.selectedSession = nil
+            }
+            if state.hasSearchInput {
+                await state.runSearch(using: repository)
+            }
+            await reloadUserMetadataOverlays()
+            await reloadSmartFolders()
+            await reloadSmartFolderCounts()
+            if state.mainTab == .stats {
+                await reloadStats()
+            }
+            ToastCenter.shared.success("Rescanned \(provider.displayName) sessions")
+        } catch {
+            ToastCenter.shared.error("Rescan failed: \(error.localizedDescription)")
         }
     }
 

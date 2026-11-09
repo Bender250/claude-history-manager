@@ -60,6 +60,13 @@ public final class AppState {
     /// by AppView's `.task` when the first workspace list arrives.
     public var isBootstrapping: Bool = true
 
+    /// True while a user-triggered rescan (title-bar reload button / ⌘R)
+    /// re-walks the active provider's session folders. Unlike
+    /// `isBootstrapping` it keeps the main window visible; it only
+    /// disables the reload button and blocks provider switches, because
+    /// the provider bootstraps flip the repository's active provider.
+    public var isRescanning: Bool = false
+
     // MARK: - Search state
 
     /// Raw text from the global search bar.
@@ -612,6 +619,7 @@ public final class AppState {
     ) {
         guard providerID != activeProvider else { return }
         guard availableProviders.contains(providerID) else { return }
+        guard !isRescanning else { return }
 
         cancelPendingSearch()
         clearPreviewStats()
